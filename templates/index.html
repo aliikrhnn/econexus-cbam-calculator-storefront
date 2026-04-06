@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="{{ copy.html_lang }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ copy.page_title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="hero-panel">
+      <div class="top-ribbon">
+        <span class="eyebrow">{{ copy.eyebrow }}</span>
+        <div class="top-actions">
+          <nav class="language-switcher" aria-label="Language selector">
+            <a href="{{ url_for('index', lang='tr') }}" class="{{ 'active' if current_lang == 'tr' else '' }}">TR</a>
+            <a href="{{ url_for('index', lang='en') }}" class="{{ 'active' if current_lang == 'en' else '' }}">EN</a>
+            <a href="{{ url_for('index', lang='de') }}" class="{{ 'active' if current_lang == 'de' else '' }}">DE</a>
+          </nav>
+          <a class="jump-link" href="#pricing">{{ copy.jump_link }}</a>
+        </div>
+      </div>
+
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <div class="hero-badge">{{ copy.hero_badge }}</div>
+          <h1>{{ product_name }}</h1>
+          <p class="lead">{{ copy.lead }}</p>
+          <p class="sublead">{{ copy.sublead }}</p>
+
+          <div class="hero-points">
+            <div class="hero-point">
+              <strong>{{ copy.hero_point_1_title }}</strong>
+              <span>{{ copy.hero_point_1_text }}</span>
+            </div>
+            <div class="hero-point">
+              <strong>{{ copy.hero_point_2_title }}</strong>
+              <span>{{ copy.hero_point_2_text }}</span>
+            </div>
+            <div class="hero-point">
+              <strong>{{ copy.hero_point_3_title }}</strong>
+              <span>{{ copy.hero_point_3_text }}</span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="purchase-card" id="pricing">
+          <p class="card-tag">{{ copy.license_tag }}</p>
+          <div class="price-row">
+            <strong>{{ price_display }}</strong>
+            <span>{{ copy.price_note }}</span>
+          </div>
+
+          <div class="platform-strip">
+            <span>macOS desktop</span>
+            <span>Windows desktop</span>
+            <span>Annual commercial use</span>
+          </div>
+
+          <div class="purchase-meta">
+            <div>
+              <b>{{ copy.delivery_title }}</b>
+              <span>{{ copy.delivery_text }}</span>
+            </div>
+            <div>
+              <b>{{ copy.usage_title }}</b>
+              <span>{{ copy.usage_text }}</span>
+            </div>
+          </div>
+
+          <form method="POST" action="{{ url_for('checkout') }}" class="checkout-form">
+            <input type="hidden" name="lang" value="{{ current_lang }}" />
+            <label for="email">{{ copy.email_label }}</label>
+            <input id="email" name="email" type="email" placeholder="{{ copy.email_placeholder }}" required />
+            <button type="submit">{{ copy.buy_button }}</button>
+          </form>
+
+          <div class="trust-strip">
+            <span>{{ copy.trust_1 }}</span>
+            <span>{{ copy.trust_2 }}</span>
+            <span>{{ copy.trust_3 }}</span>
+          </div>
+
+          {% if not download_available %}
+          <p class="error-note">{{ copy.download_missing }}</p>
+          {% endif %}
+        </aside>
+      </div>
+
+      <div class="metrics-row">
+        <article class="metric-card">
+          <span class="metric-label">{{ copy.metric_1_label }}</span>
+          <strong>{{ copy.metric_1_title }}</strong>
+          <p>{{ copy.metric_1_text }}</p>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">{{ copy.metric_2_label }}</span>
+          <strong>{{ copy.metric_2_title }}</strong>
+          <p>{{ copy.metric_2_text }}</p>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">{{ copy.metric_3_label }}</span>
+          <strong>{{ copy.metric_3_title }}</strong>
+          <p>{{ copy.metric_3_text }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="workflow-section">
+      <div class="section-head">
+        <span class="section-kicker">{{ copy.workflow_kicker }}</span>
+        <h2>{{ copy.workflow_title }}</h2>
+      </div>
+      <div class="workflow-grid">
+        <article class="workflow-card">
+          <span class="step-index">01</span>
+          <h3>{{ copy.workflow_1_title }}</h3>
+          <p>{{ copy.workflow_1_text }}</p>
+        </article>
+        <article class="workflow-card">
+          <span class="step-index">02</span>
+          <h3>{{ copy.workflow_2_title }}</h3>
+          <p>{{ copy.workflow_2_text }}</p>
+        </article>
+        <article class="workflow-card">
+          <span class="step-index">03</span>
+          <h3>{{ copy.workflow_3_title }}</h3>
+          <p>{{ copy.workflow_3_text }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="features-section">
+      <div class="section-head">
+        <span class="section-kicker">{{ copy.features_kicker }}</span>
+        <h2>{{ copy.features_title }}</h2>
+      </div>
+      <div class="features-grid">
+        <article class="feature-tile feature-wide">
+          <h3>{{ copy.feature_1_title }}</h3>
+          <p>{{ copy.feature_1_text }}</p>
+        </article>
+        <article class="feature-tile">
+          <h3>{{ copy.feature_2_title }}</h3>
+          <p>{{ copy.feature_2_text }}</p>
+        </article>
+        <article class="feature-tile">
+          <h3>{{ copy.feature_3_title }}</h3>
+          <p>{{ copy.feature_3_text }}</p>
+        </article>
+        <article class="feature-tile">
+          <h3>{{ copy.feature_4_title }}</h3>
+          <p>{{ copy.feature_4_text }}</p>
+        </article>
+        <article class="feature-tile">
+          <h3>{{ copy.feature_5_title }}</h3>
+          <p>{{ copy.feature_5_text }}</p>
+        </article>
+        <article class="feature-tile feature-accent">
+          <h3>{{ copy.feature_6_title }}</h3>
+          <p>{{ copy.feature_6_text }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="spotlight-section">
+      <div class="section-head">
+        <span class="section-kicker">{{ copy.spotlight_kicker }}</span>
+        <h2>{{ copy.spotlight_title }}</h2>
+      </div>
+      <div class="spotlight-grid">
+        <article class="spotlight-card">
+          <h3>{{ copy.spotlight_1_title }}</h3>
+          <p>{{ copy.spotlight_1_text }}</p>
+        </article>
+        <article class="spotlight-card">
+          <h3>{{ copy.spotlight_2_title }}</h3>
+          <p>{{ copy.spotlight_2_text }}</p>
+        </article>
+        <article class="spotlight-card">
+          <h3>{{ copy.spotlight_3_title }}</h3>
+          <p>{{ copy.spotlight_3_text }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="fit-section">
+      <div class="section-head">
+        <span class="section-kicker">Recommended fit</span>
+        <h2>Kimler için daha doğru bir çözüm</h2>
+      </div>
+      <div class="fit-grid">
+        <article class="fit-card">
+          <h3>İhracat ekipleri</h3>
+          <p>CBAM yükümlülüğünü iç kaynakla hızlı hesaplamak ve çıktı üretmek isteyen operasyon ekipleri için.</p>
+        </article>
+        <article class="fit-card">
+          <h3>Danışmanlık ekipleri</h3>
+          <p>Müşteri bazlı hesap, tekrar kullanım ve XLSX teslim çıktısı gerektiren danışmanlık akışları için.</p>
+        </article>
+        <article class="fit-card">
+          <h3>Teknik karar vericiler</h3>
+          <p>Ürün bazlı özetleri, precursor etkisini ve allocation sonuçlarını tek ekranda görmek isteyen ekipler için.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

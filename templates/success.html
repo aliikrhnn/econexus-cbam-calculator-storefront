@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="{{ copy.html_lang }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ copy.success_title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="page-shell success-shell">
+    <section class="success-card">
+      <div class="top-ribbon">
+        <p class="eyebrow">{{ copy.success_eyebrow }}</p>
+        <nav class="language-switcher" aria-label="Language selector">
+          <a href="{{ url_for('checkout_success', session_id=order.checkout_ref, lang='tr') }}" class="{{ 'active' if current_lang == 'tr' else '' }}">TR</a>
+          <a href="{{ url_for('checkout_success', session_id=order.checkout_ref, lang='en') }}" class="{{ 'active' if current_lang == 'en' else '' }}">EN</a>
+          <a href="{{ url_for('checkout_success', session_id=order.checkout_ref, lang='de') }}" class="{{ 'active' if current_lang == 'de' else '' }}">DE</a>
+        </nav>
+      </div>
+      <h1>{{ product_name }}</h1>
+      <p class="lead">{{ copy.success_lead }}</p>
+      <p class="sublead">{{ copy.success_sublead.format(expires_at=expires_at.strftime('%d.%m.%Y %H:%M UTC')) }}</p>
+      <div class="order-meta">
+        <span>{{ order.email }}</span>
+        <span>{{ order.checkout_ref }}</span>
+      </div>
+      <a class="download-button" href="{{ download_url }}">{{ copy.download_button }}</a>
+      <p class="card-note">{{ copy.success_note }}</p>
+    </section>
+  </main>
+</body>
+</html>

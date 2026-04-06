@@ -1,0 +1,533 @@
+from __future__ import annotations
+
+import logging
+import os
+from datetime import UTC, datetime
+from pathlib import Path
+
+import stripe
+from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, url_for
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+
+from storefront.config import load_settings
+from storefront.db import StoreDB
+
+
+settings = load_settings()
+project_root = Path(__file__).resolve().parent.parent
+app = Flask(
+    __name__,
+    template_folder=str(project_root / "templates"),
+    static_folder=str(project_root / "public"),
+    static_url_path="",
+)
+app.config["SECRET_KEY"] = settings.secret_key
+app.logger.setLevel(logging.INFO)
+
+db = None
+if settings.storage_mode == "database":
+    db = StoreDB(settings.database_path)
+    db.init_db()
+
+if settings.stripe_secret_key:
+    stripe.api_key = settings.stripe_secret_key
+
+download_serializer = URLSafeTimedSerializer(settings.secret_key, salt="cbam-storefront-download")
+
+
+SUPPORTED_LANGUAGES = ("tr", "en", "de")
+
+COPY = {
+    "tr": {
+        "lang_code": "tr",
+        "html_lang": "tr",
+        "page_title": None,
+        "eyebrow": "CBAM hesaplama aracı",
+        "jump_link": "Lisans bölümüne git",
+        "hero_badge": "Desktop License 2026",
+        "lead": None,
+        "sublead": (
+            "CBAM yükümlülüğünü hızlı, izlenebilir ve raporlanabilir biçimde hesaplamak isteyen "
+            "ihracat ekipleri, danışmanlar ve teknik operasyon birimleri için hazırlanmış masaüstü çözüm."
+        ),
+        "hero_point_1_title": "Türkçe + İngilizce",
+        "hero_point_1_text": "Çok dilli kullanım ve sonuç akışı",
+        "hero_point_2_title": "XLSX çıktısı",
+        "hero_point_2_text": "Hazır rapor ve çalışma çıktısı üretimi",
+        "hero_point_3_title": "Çok ürünlü kurgu",
+        "hero_point_3_text": "Allocation, precursor ve ürün bazlı özetler",
+        "license_tag": "Yıllık lisans",
+        "price_note": "KDV hariç / yıllık kullanım hakkı",
+        "delivery_title": "Teslim modeli",
+        "delivery_text": "Ödeme sonrası anında indirme",
+        "usage_title": "Kullanım tipi",
+        "usage_text": "Masaüstü uygulama",
+        "email_label": "Satın alma e-postası",
+        "email_placeholder": "ornek@sirket.com",
+        "buy_button": "Lisansı Satın Al",
+        "trust_1": "CBAM hesapları",
+        "trust_2": "Ürün bazlı çıktı",
+        "trust_3": "Excel raporu",
+        "download_missing": "Uygulama dosyası henüz sunucuya bağlanmamış. `STORE_DOWNLOAD_FILE` ayarını yapın.",
+        "metric_1_label": "Hesap kapsamı",
+        "metric_1_title": "Direct + Indirect",
+        "metric_1_text": "Gömülü emisyonların ana CBAM kalemleri tek akışta hesaplanır.",
+        "metric_2_label": "Operasyon akışı",
+        "metric_2_title": "Allocation Ready",
+        "metric_2_text": "Çok ürünlü dağıtım ve ürün bazlı net sonuç ekranı hazır gelir.",
+        "metric_3_label": "Çıktı formatı",
+        "metric_3_title": "XLSX Export",
+        "metric_3_text": "Sonuçlar masaüstünden dışa aktarılıp paylaşılabilir.",
+        "workflow_kicker": "Kullanım akışı",
+        "workflow_title": "Nasıl çalışır",
+        "workflow_1_title": "Veriyi gir",
+        "workflow_1_text": "Üretim miktarı, enerji, precursor ve karbon fiyatı verilerini tek ekranda gir.",
+        "workflow_2_title": "CBAM sonucunu gör",
+        "workflow_2_text": "Direkt, dolaylı, toplam embedded emissions ve net CBAM yükümlülüğü anında oluşur.",
+        "workflow_3_title": "Kaydet ve dışa aktar",
+        "workflow_3_text": "Hesapları kaydet, yeniden yükle ve XLSX çıktısı ile ekip içinde dağıt.",
+        "features_kicker": "Ürün kabiliyetleri",
+        "features_title": "Uygulama özellikleri",
+        "feature_1_title": "CBAM hesap çekirdeği",
+        "feature_1_text": "Direkt, dolaylı ve toplam gömülü emisyonlar ile net CBAM yükümlülüğü aynı akışta üretilir.",
+        "feature_2_title": "Çok ürünlü allocation",
+        "feature_2_text": "Ürün bazlı allocation, summary table ve route-specific sonuç görünümü.",
+        "feature_3_title": "Precursor desteği",
+        "feature_3_text": "Purchased precursor girdileri, SEE direct / indirect ve ürün eşleme desteği.",
+        "feature_4_title": "Enerji detayları",
+        "feature_4_text": "Specific intensities, fuel streams ve electricity EF seçenekleri birlikte çalışır.",
+        "feature_5_title": "Kayıt ve tekrar kullanım",
+        "feature_5_text": "Kaydedilmiş hesaplar ile tekrar açma ve iş akışı sürekliliği.",
+        "feature_6_title": "Excel deliverable",
+        "feature_6_text": "XLSX export ile sonuçlar, girdiler ve özet tablolar operasyon kullanımına hazır hale gelir.",
+        "spotlight_kicker": "Önerilen kullanım",
+        "spotlight_title": "Satış sürecini daha net yapan üç avantaj",
+        "spotlight_1_title": "İç ekipler için hızlı onboarding",
+        "spotlight_1_text": "Terminal, kurulum karmaşası veya eğitim yükü olmadan doğrudan masaüstü kullanım.",
+        "spotlight_2_title": "Danışmanlık çıktısına uygun teslim",
+        "spotlight_2_text": "Kaydedilmiş hesaplar ve XLSX çıktısı ile müşteri ya da ekip paylaşımı kolaylaşır.",
+        "spotlight_3_title": "Operasyonel tekrar kullanıma uygun",
+        "spotlight_3_text": "Aynı akış, yeni veri setleriyle tekrar çalıştırılıp düzenli raporlama için kullanılabilir.",
+        "success_title": "İndirme Hazır",
+        "success_eyebrow": "Ödeme tamamlandı",
+        "success_lead": "İndirmeniz hazır.",
+        "success_sublead": "Süre bitimi: {expires_at}",
+        "download_button": "Uygulamayı İndir",
+        "success_note": "Link sınırlı kullanım sayısına sahiptir. Kurulum dosyasını güvenli bir yerde saklayın.",
+    },
+    "en": {
+        "lang_code": "en",
+        "html_lang": "en",
+        "page_title": None,
+        "eyebrow": "CBAM calculation tool",
+        "jump_link": "Go to licensing",
+        "hero_badge": "Desktop License 2026",
+        "lead": None,
+        "sublead": (
+            "A desktop solution built for exporters, consultants, and technical operations teams "
+            "that need fast, traceable, and report-ready CBAM liability calculations."
+        ),
+        "hero_point_1_title": "Turkish + English",
+        "hero_point_1_text": "Multilingual workflow and output experience",
+        "hero_point_2_title": "XLSX export",
+        "hero_point_2_text": "Ready-to-share reporting output from the desktop app",
+        "hero_point_3_title": "Multi-product setup",
+        "hero_point_3_text": "Allocation, precursor support, and product-level summaries",
+        "license_tag": "Annual license",
+        "price_note": "Excluding VAT / annual usage right",
+        "delivery_title": "Delivery model",
+        "delivery_text": "Instant download after payment",
+        "usage_title": "Usage type",
+        "usage_text": "Desktop application",
+        "email_label": "Purchase email",
+        "email_placeholder": "name@company.com",
+        "buy_button": "Buy the License",
+        "trust_1": "CBAM calculations",
+        "trust_2": "Product-level output",
+        "trust_3": "Excel report",
+        "download_missing": "The application file is not connected yet. Set `STORE_DOWNLOAD_FILE` first.",
+        "metric_1_label": "Calculation scope",
+        "metric_1_title": "Direct + Indirect",
+        "metric_1_text": "Core CBAM embedded-emissions items are calculated in one flow.",
+        "metric_2_label": "Operational flow",
+        "metric_2_title": "Allocation Ready",
+        "metric_2_text": "Built for multi-product allocation and product-level net results.",
+        "metric_3_label": "Output format",
+        "metric_3_title": "XLSX Export",
+        "metric_3_text": "Results can be exported and shared from the desktop app.",
+        "workflow_kicker": "Workflow",
+        "workflow_title": "How it works",
+        "workflow_1_title": "Enter the data",
+        "workflow_1_text": "Input production, energy, precursor, and carbon-price data in one screen.",
+        "workflow_2_title": "Review the CBAM result",
+        "workflow_2_text": "Direct, indirect, total embedded emissions, and net CBAM liability are produced instantly.",
+        "workflow_3_title": "Save and export",
+        "workflow_3_text": "Save calculations, reopen them later, and distribute XLSX outputs across the team.",
+        "features_kicker": "Product capabilities",
+        "features_title": "Application features",
+        "feature_1_title": "CBAM calculation core",
+        "feature_1_text": "Direct, indirect, total embedded emissions, and net CBAM liability are generated in one calculation flow.",
+        "feature_2_title": "Multi-product allocation",
+        "feature_2_text": "Product-level allocation, summary tables, and route-specific result views.",
+        "feature_3_title": "Precursor support",
+        "feature_3_text": "Purchased precursor inputs, SEE direct/indirect values, and product mapping support.",
+        "feature_4_title": "Energy details",
+        "feature_4_text": "Specific intensities, fuel streams, and electricity EF options work together.",
+        "feature_5_title": "Save and reuse",
+        "feature_5_text": "Saved calculations support repeat workflows and consistent reporting.",
+        "feature_6_title": "Excel deliverable",
+        "feature_6_text": "XLSX exports make results, inputs, and summary tables ready for operational use.",
+        "spotlight_kicker": "Suggested positioning",
+        "spotlight_title": "Three advantages that strengthen the sales page",
+        "spotlight_1_title": "Fast onboarding for internal teams",
+        "spotlight_1_text": "Desktop-first usage without terminal friction, setup confusion, or training-heavy rollout.",
+        "spotlight_2_title": "Deliverable-ready for consulting work",
+        "spotlight_2_text": "Saved calculations and XLSX output make client and team handoff much easier.",
+        "spotlight_3_title": "Built for repeated operational use",
+        "spotlight_3_text": "Run the same flow again with new data sets for recurring reporting cycles.",
+        "success_title": "Download Ready",
+        "success_eyebrow": "Payment completed",
+        "success_lead": "Your download is ready.",
+        "success_sublead": "Expiration: {expires_at}",
+        "download_button": "Download the App",
+        "success_note": "The link has a limited number of uses. Keep the installer file in a safe location.",
+    },
+    "de": {
+        "lang_code": "de",
+        "html_lang": "de",
+        "page_title": None,
+        "eyebrow": "CBAM-Berechnungstool",
+        "jump_link": "Zum Lizenzbereich",
+        "hero_badge": "Desktop-Lizenz 2026",
+        "lead": None,
+        "sublead": (
+            "Eine Desktop-Lösung für Exporteure, Berater und technische Teams, "
+            "die CBAM-Verpflichtungen schnell, nachvollziehbar und berichtsfähig berechnen müssen."
+        ),
+        "hero_point_1_title": "Türkisch + Englisch",
+        "hero_point_1_text": "Mehrsprachiger Ablauf und Ausgabe",
+        "hero_point_2_title": "XLSX-Export",
+        "hero_point_2_text": "Desktop-Ausgabe für Berichte und operative Weitergabe",
+        "hero_point_3_title": "Mehrprodukt-Struktur",
+        "hero_point_3_text": "Allocation, Precursor-Support und produktbezogene Zusammenfassungen",
+        "license_tag": "Jahreslizenz",
+        "price_note": "Zzgl. MwSt. / jährliches Nutzungsrecht",
+        "delivery_title": "Bereitstellung",
+        "delivery_text": "Sofortiger Download nach der Zahlung",
+        "usage_title": "Nutzungstyp",
+        "usage_text": "Desktop-Anwendung",
+        "email_label": "E-Mail für den Kauf",
+        "email_placeholder": "name@unternehmen.de",
+        "buy_button": "Lizenz kaufen",
+        "trust_1": "CBAM-Berechnungen",
+        "trust_2": "Produktbezogene Ausgabe",
+        "trust_3": "Excel-Bericht",
+        "download_missing": "Die Anwendungsdatei ist noch nicht verbunden. Setzen Sie zuerst `STORE_DOWNLOAD_FILE`.",
+        "metric_1_label": "Berechnungsumfang",
+        "metric_1_title": "Direkt + Indirekt",
+        "metric_1_text": "Die zentralen CBAM-Positionen für eingebettete Emissionen werden in einem Ablauf berechnet.",
+        "metric_2_label": "Betriebsablauf",
+        "metric_2_title": "Allocation Ready",
+        "metric_2_text": "Für Multi-Produkt-Allocation und produktbezogene Nettoergebnisse vorbereitet.",
+        "metric_3_label": "Ausgabeformat",
+        "metric_3_title": "XLSX-Export",
+        "metric_3_text": "Ergebnisse können aus der Desktop-App exportiert und geteilt werden.",
+        "workflow_kicker": "Ablauf",
+        "workflow_title": "So funktioniert es",
+        "workflow_1_title": "Daten eingeben",
+        "workflow_1_text": "Produktions-, Energie-, Precursor- und CO2-Preisdaten in einer Oberfläche erfassen.",
+        "workflow_2_title": "CBAM-Ergebnis prüfen",
+        "workflow_2_text": "Direkte, indirekte und gesamte eingebettete Emissionen sowie die Netto-CBAM-Verpflichtung werden sofort berechnet.",
+        "workflow_3_title": "Speichern und exportieren",
+        "workflow_3_text": "Berechnungen speichern, später erneut öffnen und XLSX-Ausgaben im Team verteilen.",
+        "features_kicker": "Produktfunktionen",
+        "features_title": "Anwendungsfunktionen",
+        "feature_1_title": "CBAM-Berechnungskern",
+        "feature_1_text": "Direkte, indirekte und gesamte eingebettete Emissionen sowie die Netto-CBAM-Verpflichtung entstehen in einem Ablauf.",
+        "feature_2_title": "Multi-Produkt-Allocation",
+        "feature_2_text": "Produktbezogene Allocation, Summary-Tabellen und route-spezifische Ergebnisansichten.",
+        "feature_3_title": "Precursor-Unterstützung",
+        "feature_3_text": "Purchased-Precursor-Eingaben, SEE direct/indirect-Werte und Produktzuordnung.",
+        "feature_4_title": "Energiedetails",
+        "feature_4_text": "Specific Intensities, Fuel Streams und Electricity-EF-Optionen arbeiten zusammen.",
+        "feature_5_title": "Speichern und wiederverwenden",
+        "feature_5_text": "Gespeicherte Berechnungen unterstützen wiederkehrende Abläufe und konsistentes Reporting.",
+        "feature_6_title": "Excel-Deliverable",
+        "feature_6_text": "XLSX-Exporte machen Ergebnisse, Eingaben und Summary-Tabellen sofort operativ nutzbar.",
+        "spotlight_kicker": "Empfohlene Positionierung",
+        "spotlight_title": "Drei Vorteile für eine stärkere Verkaufsseite",
+        "spotlight_1_title": "Schnelles Onboarding für interne Teams",
+        "spotlight_1_text": "Desktop-first Nutzung ohne Terminal-Hürden, Setup-Verwirrung oder hohen Schulungsaufwand.",
+        "spotlight_2_title": "Geeignet für Beratungs-Deliverables",
+        "spotlight_2_text": "Gespeicherte Berechnungen und XLSX-Ausgaben erleichtern die Übergabe an Kunden und Teams.",
+        "spotlight_3_title": "Für wiederholte operative Nutzung gebaut",
+        "spotlight_3_text": "Der gleiche Ablauf kann mit neuen Datensätzen für regelmäßige Reporting-Zyklen erneut genutzt werden.",
+        "success_title": "Download bereit",
+        "success_eyebrow": "Zahlung abgeschlossen",
+        "success_lead": "Ihr Download ist bereit.",
+        "success_sublead": "Ablaufzeit: {expires_at}",
+        "download_button": "App herunterladen",
+        "success_note": "Der Link hat eine begrenzte Anzahl an Nutzungen. Bewahren Sie die Installationsdatei sicher auf.",
+    },
+}
+
+
+def price_display() -> str:
+    return f"{settings.price_cents / 100:,.0f} EUR".replace(",", ".")
+
+
+def is_download_available() -> bool:
+    return bool(settings.download_url) or settings.download_file.is_file()
+
+
+def is_stateless_mode() -> bool:
+    return settings.storage_mode == "signed"
+
+
+def ensure_db() -> StoreDB:
+    if db is None:
+        raise RuntimeError("Database mode is not active.")
+    return db
+
+
+def create_signed_download_token(*, checkout_ref: str, email: str, payment_mode: str) -> str:
+    return download_serializer.dumps(
+        {
+            "checkout_ref": checkout_ref,
+            "email": email,
+            "payment_mode": payment_mode,
+        }
+    )
+
+
+def load_signed_download_token(token: str) -> dict[str, str]:
+    return download_serializer.loads(token, max_age=settings.token_ttl_hours * 3600)
+
+
+def get_lang() -> str:
+    lang = request.values.get("lang", request.args.get("lang", "tr")).strip().lower()
+    return lang if lang in SUPPORTED_LANGUAGES else "tr"
+
+
+def get_copy(lang: str) -> dict[str, str]:
+    data = dict(COPY[lang])
+    data["page_title"] = settings.product_name
+    data["lead"] = settings.product_tagline
+    return data
+
+
+@app.get("/")
+def index():
+    lang = get_lang()
+    return render_template(
+        "index.html",
+        product_name=settings.product_name,
+        product_tagline=settings.product_tagline,
+        price_display=price_display(),
+        stripe_enabled=settings.payment_mode == "stripe",
+        stripe_publishable_key=settings.stripe_publishable_key,
+        download_available=is_download_available(),
+        current_lang=lang,
+        copy=get_copy(lang),
+    )
+
+
+@app.post("/checkout")
+def checkout():
+    lang = get_lang()
+    email = request.form.get("email", "").strip()
+    if not email:
+        abort(400, "Email is required.")
+
+    if not is_download_available():
+        abort(500, "Download file is not configured.")
+
+    if settings.payment_mode == "demo":
+        checkout_ref = f"demo_{datetime.now(UTC).timestamp()}"
+        if is_stateless_mode():
+            app.logger.info("Created stateless demo order %s for %s", checkout_ref, email)
+        else:
+            ensure_db().mark_paid(
+                checkout_ref=checkout_ref,
+                email=email,
+                payment_mode="demo",
+                token_ttl_hours=settings.token_ttl_hours,
+                download_limit=settings.download_limit,
+            )
+        app.logger.info("Created demo paid order %s for %s", checkout_ref, email)
+        return redirect(url_for("checkout_success", session_id=checkout_ref, lang=lang, email=email))
+
+    if settings.payment_mode != "stripe" or not settings.stripe_secret_key:
+        abort(500, "Stripe is not configured.")
+
+    session = stripe.checkout.Session.create(
+        mode="payment",
+        customer_email=email,
+        success_url=f"{settings.base_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}&lang={lang}",
+        cancel_url=f"{settings.base_url}/?lang={lang}#pricing",
+        line_items=[
+            {
+                "price_data": {
+                    "currency": settings.currency,
+                    "product_data": {
+                        "name": settings.product_name,
+                        "description": settings.product_tagline,
+                    },
+                    "unit_amount": settings.price_cents,
+                },
+                "quantity": 1,
+            }
+        ],
+    )
+    app.logger.info("Created Stripe checkout session %s for %s", session.id, email)
+    return redirect(session.url, code=303)
+
+
+@app.get("/checkout/success")
+def checkout_success():
+    lang = get_lang()
+    session_id = request.args.get("session_id", "").strip()
+    if not session_id:
+        abort(400, "Missing session id.")
+
+    if settings.payment_mode == "demo":
+        if is_stateless_mode():
+            email = request.args.get("email", "").strip()
+            if not email:
+                email = "customer"
+            order = {
+                "email": email,
+                "checkout_ref": session_id,
+                "payment_mode": "demo",
+            }
+        else:
+            order = ensure_db().get_order_by_checkout_ref(session_id)
+            if not order:
+                abort(404, "Order not found.")
+    else:
+        if not settings.stripe_secret_key:
+            abort(500, "Stripe is not configured.")
+        session = stripe.checkout.Session.retrieve(session_id)
+        if session.payment_status != "paid":
+            abort(403, "Payment not completed.")
+        email = session.customer_details.email or session.customer_email or ""
+        if is_stateless_mode():
+            order = {
+                "email": email,
+                "checkout_ref": session.id,
+                "payment_mode": "stripe",
+            }
+        else:
+            order = ensure_db().mark_paid(
+                checkout_ref=session.id,
+                email=email,
+                payment_mode="stripe",
+                token_ttl_hours=settings.token_ttl_hours,
+                download_limit=settings.download_limit,
+            )
+            app.logger.info("Marked Stripe order %s as paid", session.id)
+
+    if is_stateless_mode():
+        token = create_signed_download_token(
+            checkout_ref=order["checkout_ref"],
+            email=order["email"],
+            payment_mode=order["payment_mode"],
+        )
+        download_url = f"{settings.base_url}{url_for('download', token=token)}"
+        expires_at = datetime.now(UTC).replace(microsecond=0)
+        expires_at = datetime.fromtimestamp(expires_at.timestamp() + settings.token_ttl_hours * 3600, tz=UTC)
+    else:
+        download_url = f"{settings.base_url}{url_for('download', token=order['token'])}"
+        expires_at = datetime.fromisoformat(order["token_expires_at"])
+    return render_template(
+        "success.html",
+        product_name=settings.product_name,
+        order=order,
+        download_url=download_url,
+        expires_at=expires_at,
+        current_lang=lang,
+        copy=get_copy(lang),
+    )
+
+
+@app.post("/webhooks/stripe")
+def stripe_webhook():
+    if not settings.stripe_webhook_secret:
+        abort(404)
+
+    payload = request.get_data(as_text=True)
+    signature = request.headers.get("Stripe-Signature", "")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload,
+            signature,
+            settings.stripe_webhook_secret,
+        )
+    except Exception:
+        app.logger.exception("Invalid Stripe webhook")
+        abort(400)
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        if session.get("payment_status") == "paid" and not is_stateless_mode():
+            order = ensure_db().mark_paid(
+                checkout_ref=session["id"],
+                email=session.get("customer_details", {}).get("email") or session.get("customer_email") or "",
+                payment_mode="stripe",
+                token_ttl_hours=settings.token_ttl_hours,
+                download_limit=settings.download_limit,
+            )
+            app.logger.info("Webhook marked order %s as paid", order["checkout_ref"])
+
+    return jsonify({"received": True})
+
+
+@app.get("/download/<token>")
+def download(token: str):
+    if is_stateless_mode():
+        try:
+            order = load_signed_download_token(token)
+        except SignatureExpired:
+            abort(403, "Download token expired.")
+        except BadSignature:
+            abort(404)
+
+        app.logger.info("Serving stateless download to %s for order %s", order["email"], order["checkout_ref"])
+        if settings.download_url:
+            return redirect(settings.download_url, code=302)
+        if not settings.download_file.is_file():
+            abort(500, "Download file missing.")
+    else:
+        order = ensure_db().get_order_by_token(token)
+        if not order:
+            abort(404)
+        if order["payment_status"] != "paid":
+            abort(403)
+
+        expires_at = datetime.fromisoformat(order["token_expires_at"])
+        if expires_at < datetime.now(UTC):
+            abort(403, "Download token expired.")
+        if order["download_count"] >= order["download_limit"]:
+            abort(403, "Download limit reached.")
+        if not settings.download_file.is_file():
+            abort(500, "Download file missing.")
+
+        ensure_db().increment_download_count(order["id"])
+        app.logger.info(
+            "Serving download to %s for order %s (%s/%s)",
+            order["email"],
+            order["checkout_ref"],
+            order["download_count"] + 1,
+            order["download_limit"],
+        )
+    return send_file(
+        settings.download_file,
+        as_attachment=True,
+        download_name=settings.download_file.name,
+        max_age=0,
+    )
+
+
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", "8080")), debug=True)
