@@ -20,6 +20,7 @@
             <a href="{{ url_for('index', lang='en') }}" class="{{ 'active' if current_lang == 'en' else '' }}">EN</a>
             <a href="{{ url_for('index', lang='de') }}" class="{{ 'active' if current_lang == 'de' else '' }}">DE</a>
           </nav>
+          <a class="jump-link" href="https://alegstudio.com" target="_blank" rel="noreferrer">Aleg Studio</a>
           <a class="jump-link" href="{{ url_for('downloads', lang=current_lang) }}">{{ copy.downloads_nav }}</a>
           <a class="jump-link" href="#pricing">{{ copy.jump_link }}</a>
         </div>
