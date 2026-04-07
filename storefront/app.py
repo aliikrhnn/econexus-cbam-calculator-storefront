@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 import stripe
 from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, url_for
@@ -114,6 +115,21 @@ COPY = {
         "success_sublead": "Süre bitimi: {expires_at}",
         "download_button": "Uygulamayı İndir",
         "success_note": "Link sınırlı kullanım sayısına sahiptir. Kurulum dosyasını güvenli bir yerde saklayın.",
+        "downloads_nav": "İndirme sayfası",
+        "downloads_title": "Masaüstü sürümünü indir",
+        "downloads_sublead": "İşletim sisteminize uygun paketi seçin. Yanlış dosya indirme riskini azaltmak için macOS ve Windows sürümleri ayrı sunulur.",
+        "downloads_hint": "Algılanan cihaz",
+        "downloads_hint_none": "Algılanamadı",
+        "downloads_version_label": "Release",
+        "downloads_mac_title": "macOS İndir",
+        "downloads_windows_title": "Windows İndir",
+        "downloads_mac_button": "macOS için indir",
+        "downloads_windows_button": "Windows için indir",
+        "downloads_missing": "İndirme linki henüz eklenmedi. Deploy ortamında ilgili URL ayarını güncelleyin.",
+        "downloads_notes_title": "Kısa notlar",
+        "downloads_note_1": "Dosya adları platform bazlı ayrılmıştır: CBAM_Engine_Mac.zip ve CBAM_Engine_Windows.zip.",
+        "downloads_note_2": "Yeni release geldiğinde sadece ortam değişkenlerindeki linkleri güncellemeniz yeterlidir.",
+        "downloads_note_3": "Otomatik yönlendirme yapılmaz; kullanıcı doğru paketi açıkça seçer.",
     },
     "en": {
         "lang_code": "en",
@@ -191,6 +207,21 @@ COPY = {
         "success_sublead": "Expiration: {expires_at}",
         "download_button": "Download the App",
         "success_note": "The link has a limited number of uses. Keep the installer file in a safe location.",
+        "downloads_nav": "Download page",
+        "downloads_title": "Download the desktop build",
+        "downloads_sublead": "Choose the package that matches your operating system. macOS and Windows builds are separated clearly to reduce download mistakes.",
+        "downloads_hint": "Detected device",
+        "downloads_hint_none": "Not detected",
+        "downloads_version_label": "Release",
+        "downloads_mac_title": "Download for macOS",
+        "downloads_windows_title": "Download for Windows",
+        "downloads_mac_button": "Download for macOS",
+        "downloads_windows_button": "Download for Windows",
+        "downloads_missing": "The download link is not configured yet. Update the matching deployment URL setting.",
+        "downloads_notes_title": "Release notes",
+        "downloads_note_1": "Artifact names stay platform-specific: CBAM_Engine_Mac.zip and CBAM_Engine_Windows.zip.",
+        "downloads_note_2": "When a new release is ready, only the configured URLs need to be updated.",
+        "downloads_note_3": "No forced redirect is used; the user explicitly chooses the correct package.",
     },
     "de": {
         "lang_code": "de",
@@ -268,6 +299,21 @@ COPY = {
         "success_sublead": "Ablaufzeit: {expires_at}",
         "download_button": "App herunterladen",
         "success_note": "Der Link hat eine begrenzte Anzahl an Nutzungen. Bewahren Sie die Installationsdatei sicher auf.",
+        "downloads_nav": "Download-Seite",
+        "downloads_title": "Desktop-Version herunterladen",
+        "downloads_sublead": "Wählen Sie das Paket passend zu Ihrem Betriebssystem. macOS- und Windows-Builds sind klar getrennt, damit keine falsche Datei geladen wird.",
+        "downloads_hint": "Erkanntes Gerät",
+        "downloads_hint_none": "Nicht erkannt",
+        "downloads_version_label": "Release",
+        "downloads_mac_title": "Für macOS herunterladen",
+        "downloads_windows_title": "Für Windows herunterladen",
+        "downloads_mac_button": "Für macOS herunterladen",
+        "downloads_windows_button": "Für Windows herunterladen",
+        "downloads_missing": "Der Download-Link ist noch nicht konfiguriert. Aktualisieren Sie die passende URL in den Deployment-Einstellungen.",
+        "downloads_notes_title": "Kurznotizen",
+        "downloads_note_1": "Die Dateinamen bleiben plattformspezifisch: CBAM_Engine_Mac.zip und CBAM_Engine_Windows.zip.",
+        "downloads_note_2": "Für ein neues Release müssen später nur die hinterlegten URLs aktualisiert werden.",
+        "downloads_note_3": "Es gibt keine erzwungene Weiterleitung; der Nutzer wählt das richtige Paket selbst.",
     },
 }
 
@@ -277,7 +323,9 @@ def price_display() -> str:
 
 
 def is_download_available() -> bool:
-    return bool(settings.download_url) or settings.download_file.is_file()
+    return bool(resolve_release_target("mac")[0] or resolve_release_target("mac")[1]) or bool(
+        resolve_release_target("windows")[0] or resolve_release_target("windows")[1]
+    )
 
 
 def is_stateless_mode() -> bool:
@@ -316,6 +364,76 @@ def get_copy(lang: str) -> dict[str, str]:
     return data
 
 
+def detect_platform(user_agent: str) -> str | None:
+    ua = user_agent.lower()
+    if "mac os x" in ua or "macintosh" in ua:
+        return "macOS"
+    if "windows" in ua or "win64" in ua or "win32" in ua:
+        return "Windows"
+    return None
+
+
+def normalize_platform(platform: str | None) -> str:
+    value = (platform or "").strip().lower()
+    if value in {"mac", "macos", "darwin"}:
+        return "mac"
+    if value in {"windows", "win", "win32", "win64"}:
+        return "windows"
+    abort(404)
+
+
+def is_zip_path(path: Path | None) -> bool:
+    return path is not None and path.suffix.lower() == ".zip"
+
+
+def is_zip_url(url: str | None) -> bool:
+    if not url:
+        return False
+    parsed = urlparse(url)
+    return parsed.path.lower().endswith(".zip")
+
+
+def resolve_release_target(platform: str) -> tuple[str | None, Path | None]:
+    normalized = normalize_platform(platform)
+    if normalized == "mac":
+        external_url = settings.mac_download_url if is_zip_url(settings.mac_download_url) else None
+        file_path = settings.release_dir / settings.mac_release_filename
+        return external_url, file_path if file_path.is_file() and is_zip_path(file_path) else None
+
+    external_url = settings.windows_download_url if is_zip_url(settings.windows_download_url) else None
+    file_path = settings.release_dir / settings.windows_release_filename
+    return external_url, file_path if file_path.is_file() and is_zip_path(file_path) else None
+
+
+def get_release_filename(platform: str) -> str:
+    normalized = normalize_platform(platform)
+    return settings.mac_release_filename if normalized == "mac" else settings.windows_release_filename
+
+
+def resolve_platform_download_urls(*, access_token: str | None = None) -> tuple[str, str]:
+    if access_token:
+        mac_url = (
+            settings.mac_secure_download_url
+            if is_zip_url(settings.mac_secure_download_url)
+            else f"{settings.base_url}{url_for('download', token=access_token, platform='mac')}"
+        )
+        windows_url = (
+            settings.windows_secure_download_url
+            if is_zip_url(settings.windows_secure_download_url)
+            else f"{settings.base_url}{url_for('download', token=access_token, platform='windows')}"
+        )
+        return mac_url, windows_url
+
+    mac_external, mac_file = resolve_release_target("mac")
+    windows_external, windows_file = resolve_release_target("windows")
+
+    mac_url = mac_external or (f"{settings.base_url}{url_for('release_download', platform='mac')}" if mac_file else "")
+    windows_url = windows_external or (
+        f"{settings.base_url}{url_for('release_download', platform='windows')}" if windows_file else ""
+    )
+    return mac_url, windows_url
+
+
 @app.get("/")
 def index():
     lang = get_lang()
@@ -329,6 +447,46 @@ def index():
         download_available=is_download_available(),
         current_lang=lang,
         copy=get_copy(lang),
+    )
+
+
+@app.get("/downloads")
+def downloads():
+    lang = get_lang()
+    detected_platform = detect_platform(request.headers.get("User-Agent", ""))
+    mac_download_url, windows_download_url = resolve_platform_download_urls()
+    return render_template(
+        "downloads.html",
+        product_name=settings.product_name,
+        product_tagline=settings.product_tagline,
+        current_lang=lang,
+        copy=get_copy(lang),
+        detected_platform=detected_platform,
+        mac_download_url=mac_download_url,
+        windows_download_url=windows_download_url,
+        mac_download_note=settings.mac_download_note,
+        windows_download_note=settings.windows_download_note,
+        release_version=settings.release_version,
+        access_email="",
+        access_reference="",
+        expires_at=None,
+        secure_access=False,
+    )
+
+
+@app.get("/release/<platform>")
+def release_download(platform: str):
+    external_url, file_path = resolve_release_target(platform)
+    if external_url:
+        return redirect(external_url, code=302)
+    if file_path is None:
+        abort(404, "Release artifact missing.")
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=get_release_filename(platform),
+        mimetype="application/zip",
+        max_age=0,
     )
 
 
@@ -433,20 +591,31 @@ def checkout_success():
             email=order["email"],
             payment_mode=order["payment_mode"],
         )
-        download_url = f"{settings.base_url}{url_for('download', token=token)}"
         expires_at = datetime.now(UTC).replace(microsecond=0)
         expires_at = datetime.fromtimestamp(expires_at.timestamp() + settings.token_ttl_hours * 3600, tz=UTC)
+        access_token = token
     else:
-        download_url = f"{settings.base_url}{url_for('download', token=order['token'])}"
+        access_token = order["token"]
         expires_at = datetime.fromisoformat(order["token_expires_at"])
+
+    mac_download_url, windows_download_url = resolve_platform_download_urls(access_token=access_token)
+    detected_platform = detect_platform(request.headers.get("User-Agent", ""))
+
     return render_template(
-        "success.html",
+        "downloads.html",
         product_name=settings.product_name,
-        order=order,
-        download_url=download_url,
-        expires_at=expires_at,
         current_lang=lang,
         copy=get_copy(lang),
+        detected_platform=detected_platform,
+        mac_download_url=mac_download_url,
+        windows_download_url=windows_download_url,
+        mac_download_note=settings.mac_download_note,
+        windows_download_note=settings.windows_download_note,
+        release_version=settings.release_version,
+        access_email=order["email"],
+        access_reference=order["checkout_ref"],
+        expires_at=expires_at,
+        secure_access=True,
     )
 
 
@@ -485,6 +654,8 @@ def stripe_webhook():
 
 @app.get("/download/<token>")
 def download(token: str):
+    platform = request.args.get("platform", "mac")
+    normalized_platform = normalize_platform(platform)
     if is_stateless_mode():
         try:
             order = load_signed_download_token(token)
@@ -494,9 +665,10 @@ def download(token: str):
             abort(404)
 
         app.logger.info("Serving stateless download to %s for order %s", order["email"], order["checkout_ref"])
-        if settings.download_url:
-            return redirect(settings.download_url, code=302)
-        if not settings.download_file.is_file():
+        external_url, file_path = resolve_release_target(normalized_platform)
+        if external_url:
+            return redirect(external_url, code=302)
+        if file_path is None:
             abort(500, "Download file missing.")
     else:
         order = ensure_db().get_order_by_token(token)
@@ -510,21 +682,27 @@ def download(token: str):
             abort(403, "Download token expired.")
         if order["download_count"] >= order["download_limit"]:
             abort(403, "Download limit reached.")
-        if not settings.download_file.is_file():
+        external_url, file_path = resolve_release_target(normalized_platform)
+        if not external_url and file_path is None:
             abort(500, "Download file missing.")
 
         ensure_db().increment_download_count(order["id"])
         app.logger.info(
-            "Serving download to %s for order %s (%s/%s)",
+            "Serving %s download to %s for order %s (%s/%s)",
+            normalized_platform,
             order["email"],
             order["checkout_ref"],
             order["download_count"] + 1,
             order["download_limit"],
         )
+        if external_url:
+            return redirect(external_url, code=302)
+
     return send_file(
-        settings.download_file,
+        file_path,
         as_attachment=True,
-        download_name=settings.download_file.name,
+        download_name=get_release_filename(normalized_platform),
+        mimetype="application/zip",
         max_age=0,
     )
 

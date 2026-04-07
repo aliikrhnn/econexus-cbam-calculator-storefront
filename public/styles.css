@@ -620,6 +620,99 @@ h1 {
   color: var(--muted);
 }
 
+.downloads-hero {
+  display: grid;
+  grid-template-columns: 0.92fr 1.08fr;
+  gap: 22px;
+  align-items: start;
+}
+
+.downloads-copy {
+  padding: 18px 4px 0 0;
+}
+
+.device-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(79, 107, 255, 0.2);
+  background: rgba(85, 103, 255, 0.12);
+  color: #dbe4ff;
+}
+
+.device-chip strong {
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.downloads-grid,
+.downloads-notes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.downloads-notes {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.download-card {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(31, 14, 60, 0.92), rgba(16, 18, 55, 0.92));
+  box-shadow: 0 20px 50px rgba(3, 0, 18, 0.3);
+}
+
+.download-card h2 {
+  margin-top: 10px;
+  font-size: 30px;
+}
+
+.download-card p {
+  margin: 12px 0 0;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.download-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 56px;
+  margin-top: 22px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--accent-deep) 100%);
+  color: #fff;
+  text-decoration: none;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 18px 36px rgba(45, 107, 255, 0.24);
+}
+
+.download-placeholder {
+  margin-top: 22px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px dashed rgba(125, 104, 255, 0.36);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.download-card small {
+  display: block;
+  margin-top: 12px;
+  color: #dbe4ff;
+  font-size: 13px;
+}
+
 .success-shell {
   min-height: 100vh;
   display: grid;
@@ -637,10 +730,13 @@ h1 {
 
 @media (max-width: 1024px) {
   .hero-grid,
+  .downloads-hero,
   .workflow-grid,
   .features-grid,
   .spotlight-grid,
   .fit-grid,
+  .downloads-grid,
+  .downloads-notes,
   .metrics-row,
   .hero-points {
     grid-template-columns: 1fr;

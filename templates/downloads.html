@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="{{ copy.html_lang }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ product_name }} | {{ copy.downloads_title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="hero-panel">
+      <div class="top-ribbon">
+        <span class="eyebrow">{{ copy.success_eyebrow if secure_access else copy.downloads_nav }}</span>
+        <div class="top-actions">
+          <nav class="language-switcher" aria-label="Language selector">
+            {% if secure_access %}
+            <a href="{{ url_for('checkout_success', session_id=access_reference, lang='tr', email=access_email) }}" class="{{ 'active' if current_lang == 'tr' else '' }}">TR</a>
+            <a href="{{ url_for('checkout_success', session_id=access_reference, lang='en', email=access_email) }}" class="{{ 'active' if current_lang == 'en' else '' }}">EN</a>
+            <a href="{{ url_for('checkout_success', session_id=access_reference, lang='de', email=access_email) }}" class="{{ 'active' if current_lang == 'de' else '' }}">DE</a>
+            {% else %}
+            <a href="{{ url_for('downloads', lang='tr') }}" class="{{ 'active' if current_lang == 'tr' else '' }}">TR</a>
+            <a href="{{ url_for('downloads', lang='en') }}" class="{{ 'active' if current_lang == 'en' else '' }}">EN</a>
+            <a href="{{ url_for('downloads', lang='de') }}" class="{{ 'active' if current_lang == 'de' else '' }}">DE</a>
+            {% endif %}
+          </nav>
+          <a class="jump-link" href="{{ url_for('index', lang=current_lang) }}">{{ product_name }}</a>
+        </div>
+      </div>
+
+      <div class="downloads-hero">
+        <div class="downloads-copy">
+          <div class="hero-badge">{{ copy.downloads_version_label }} · {{ release_version }}</div>
+          <h1>{{ product_name }}</h1>
+          <p class="lead">{{ copy.downloads_title }}</p>
+          <p class="sublead">
+            {% if secure_access %}
+            {{ copy.success_sublead.format(expires_at=expires_at.strftime('%d.%m.%Y %H:%M UTC')) }}
+            {% else %}
+            {{ copy.downloads_sublead }}
+            {% endif %}
+          </p>
+          {% if secure_access %}
+          <div class="order-meta secure-meta">
+            <span>{{ access_email }}</span>
+            <span>{{ access_reference }}</span>
+          </div>
+          {% endif %}
+          <div class="device-chip">
+            <strong>{{ copy.downloads_hint }}</strong>
+            <span>{{ detected_platform or copy.downloads_hint_none }}</span>
+          </div>
+        </div>
+
+        <div class="downloads-grid">
+          <article class="download-card">
+            <span class="metric-label">macOS</span>
+            <h2>{{ copy.downloads_mac_title }}</h2>
+            <p>{{ mac_download_note }}</p>
+            {% if mac_download_url %}
+            <a class="download-cta" href="{{ mac_download_url }}">{{ copy.downloads_mac_button }}</a>
+            {% else %}
+            <div class="download-placeholder">{{ copy.downloads_missing }}</div>
+            {% endif %}
+            <small>CBAM_Engine_Mac.zip</small>
+          </article>
+
+          <article class="download-card">
+            <span class="metric-label">Windows</span>
+            <h2>{{ copy.downloads_windows_title }}</h2>
+            <p>{{ windows_download_note }}</p>
+            {% if windows_download_url %}
+            <a class="download-cta" href="{{ windows_download_url }}">{{ copy.downloads_windows_button }}</a>
+            {% else %}
+            <div class="download-placeholder">{{ copy.downloads_missing }}</div>
+            {% endif %}
+            <small>CBAM_Engine_Windows.zip</small>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="spotlight-section">
+      <div class="section-head">
+        <span class="section-kicker">{{ copy.downloads_notes_title }}</span>
+        <h2>{{ product_name }}</h2>
+      </div>
+      <div class="downloads-notes">
+        <article class="spotlight-card">
+          <p>{{ copy.downloads_note_1 }}</p>
+        </article>
+        <article class="spotlight-card">
+          <p>{{ copy.downloads_note_2 }}</p>
+        </article>
+        <article class="spotlight-card">
+          <p>{{ copy.downloads_note_3 }}</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

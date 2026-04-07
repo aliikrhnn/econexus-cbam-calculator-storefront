@@ -21,6 +21,10 @@ Vercel ortam değişkenlerinde en az şunları tanımlayın:
 - `STORE_BASE_URL`
 - `STORE_STORAGE_MODE=signed`
 - `STORE_DOWNLOAD_URL`
+- `STORE_MAC_DOWNLOAD_URL`
+- `STORE_WINDOWS_DOWNLOAD_URL`
+- `STORE_MAC_SECURE_DOWNLOAD_URL`
+- `STORE_WINDOWS_SECURE_DOWNLOAD_URL`
 - `PAYMENT_MODE=stripe`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_PUBLISHABLE_KEY`
@@ -37,6 +41,63 @@ Vercel üzerinde uygulama dosyasını sunucu diski üzerinden vermeyin. Bunun ye
 kullanıp bu adresi `STORE_DOWNLOAD_URL` içine koyun.
 
 `STORE_DOWNLOAD_FILE` sadece lokal geliştirme için uygundur.
+
+## Release artifact yapısı
+
+Varsayılan yerel release klasörü:
+
+```text
+releases/
+  CBAM_Engine_Mac.zip
+  CBAM_Engine_Windows.zip
+```
+
+Varsayılan dosya adları:
+
+- `CBAM_Engine_Mac.zip`
+- `CBAM_Engine_Windows.zip`
+
+Bu dosyalar mevcutsa:
+
+- `/downloads` sayfasındaki macOS ve Windows butonları doğru dosyaya gider
+- ödeme sonrası güvenli `/checkout/success` akışı da platform bazlı doğru dosyaya gider
+
+İsterseniz dosyaları yerel klasörde tutmak yerine URL override kullanabilirsiniz:
+
+- `STORE_MAC_DOWNLOAD_URL`
+- `STORE_WINDOWS_DOWNLOAD_URL`
+
+Güvenli post-payment akış için ayrı URL vermek isterseniz:
+
+- `STORE_MAC_SECURE_DOWNLOAD_URL`
+- `STORE_WINDOWS_SECURE_DOWNLOAD_URL`
+
+## Download page
+
+Projede artık ayrı bir indirme sayfası vardır:
+
+```text
+/downloads
+```
+
+Bu sayfa:
+
+- macOS ve Windows linklerini ayrı gösterir
+- yanlış dosya indirme riskini azaltır
+- linkleri sadece environment variables üzerinden yönetir
+
+İlgili ayarlar:
+
+- `STORE_RELEASE_DIR`
+- `STORE_MAC_RELEASE_FILENAME`
+- `STORE_WINDOWS_RELEASE_FILENAME`
+- `STORE_MAC_DOWNLOAD_URL`
+- `STORE_WINDOWS_DOWNLOAD_URL`
+- `STORE_MAC_SECURE_DOWNLOAD_URL`
+- `STORE_WINDOWS_SECURE_DOWNLOAD_URL`
+- `STORE_MAC_DOWNLOAD_NOTE`
+- `STORE_WINDOWS_DOWNLOAD_NOTE`
+- `STORE_RELEASE_VERSION`
 
 ## Lokal geliştirme
 
@@ -73,6 +134,7 @@ https://your-domain.com/webhooks/stripe
 - `app.py`: Vercel entry point
 - `storefront/app.py`: Flask uygulaması
 - `public/styles.css`: Vercel ve lokal kullanım için public CSS
+- `releases/`: varsayılan macOS ve Windows ZIP release dosyaları
 - `templates/`: Jinja şablonları
 - `vercel.json`: Python runtime ayarı
 
