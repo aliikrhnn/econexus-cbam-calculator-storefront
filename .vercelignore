@@ -1,0 +1,9 @@
+releases/
+tests/
+data/
+.pytest_cache/
+.tmp_pytest/
+pytest-cache-files-*/
+venv/
+__pycache__/
+*.pyc
