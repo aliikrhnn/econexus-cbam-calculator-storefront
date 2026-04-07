@@ -22,8 +22,8 @@ project_root = Path(__file__).resolve().parent.parent
 app = Flask(
     __name__,
     template_folder=str(project_root / "templates"),
-    static_folder=str(project_root / "public"),
-    static_url_path="/public",
+    static_folder=str(project_root / "static"),
+    static_url_path="/static",
 )
 app.config["SECRET_KEY"] = settings.secret_key
 app.logger.setLevel(logging.INFO)
@@ -413,25 +413,6 @@ def create_lemonsqueezy_checkout(*, email: str, lang: str) -> str:
                     "custom": {
                         "source": "econexus-cbam-storefront",
                     },
-                },
-                "checkout_options": {
-                    "embed": False,
-                    "media": True,
-                    "logo": True,
-                    "desc": True,
-                    "discount": True,
-                    "subscription_preview": False,
-                    "button_color": "#163b70",
-                    "checkout_button_color": "#163b70",
-                    "dark": False,
-                    "language": lang,
-                },
-                "product_options": {
-                    "enabled_variants": [int(settings.lemon_squeezy_variant_id)],
-                    "redirect_url": f"{settings.base_url}{url_for('checkout_success', lang=lang)}",
-                    "receipt_button_text": "Open download instructions",
-                    "receipt_link_url": f"{settings.base_url}{url_for('checkout_success', lang=lang)}",
-                    "receipt_thank_you_note": "Keep your Lemon Squeezy license key and purchase email for desktop activation.",
                 },
             },
             "relationships": {
