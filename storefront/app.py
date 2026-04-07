@@ -23,7 +23,7 @@ app = Flask(
     __name__,
     template_folder=str(project_root / "templates"),
     static_folder=str(project_root / "public"),
-    static_url_path="",
+    static_url_path="/public",
 )
 app.config["SECRET_KEY"] = settings.secret_key
 app.logger.setLevel(logging.INFO)
