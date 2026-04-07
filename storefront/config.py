@@ -35,7 +35,7 @@ def load_settings() -> Settings:
         base_url=os.environ.get("STORE_BASE_URL", "http://127.0.0.1:8080").rstrip("/"),
         currency=os.environ.get("STORE_CURRENCY", "eur").lower(),
         price_cents=int(os.environ.get("STORE_PRICE_CENTS", "350000")),
-        product_name=os.environ.get("STORE_PRODUCT_NAME", "CBAM Engine Desktop"),
+        product_name=os.environ.get("STORE_PRODUCT_NAME", "Econexus Cbam Calculator"),
         product_tagline=os.environ.get(
             "STORE_PRODUCT_TAGLINE",
             "Desktop CBAM calculator for exporters",
