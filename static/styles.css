@@ -181,6 +181,37 @@ body::after {
   font-weight: 600;
 }
 
+.top-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease, color .2s ease;
+}
+
+.top-button:hover {
+  transform: translateY(-1px);
+}
+
+.top-button-primary {
+  border: 1px solid rgba(79, 107, 255, 0.26);
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--accent-deep) 100%);
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(45, 107, 255, 0.22);
+}
+
+.top-button-secondary {
+  border: 1px solid rgba(79, 107, 255, 0.18);
+  background: rgba(19, 8, 39, 0.74);
+  color: #dbe4ff;
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: 1.25fr 0.75fr;
