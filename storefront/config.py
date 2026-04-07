@@ -28,6 +28,10 @@ class Settings:
     license_duration_days: int
     payment_mode: str
     storage_mode: str
+    lemon_squeezy_api_key: str
+    lemon_squeezy_store_id: str
+    lemon_squeezy_product_id: str
+    lemon_squeezy_variant_id: str
     stripe_secret_key: str
     stripe_publishable_key: str
     stripe_webhook_secret: str
@@ -77,6 +81,10 @@ def load_settings() -> Settings:
         license_duration_days=int(os.environ.get("STORE_LICENSE_DURATION_DAYS", "365")),
         payment_mode=os.environ.get("PAYMENT_MODE", "demo").lower(),
         storage_mode=storage_mode,
+        lemon_squeezy_api_key=os.environ.get("LEMON_SQUEEZY_API_KEY", "").strip(),
+        lemon_squeezy_store_id=os.environ.get("LEMON_SQUEEZY_STORE_ID", "").strip(),
+        lemon_squeezy_product_id=os.environ.get("LEMON_SQUEEZY_PRODUCT_ID", "").strip(),
+        lemon_squeezy_variant_id=os.environ.get("LEMON_SQUEEZY_VARIANT_ID", "").strip(),
         stripe_secret_key=os.environ.get("STRIPE_SECRET_KEY", ""),
         stripe_publishable_key=os.environ.get("STRIPE_PUBLISHABLE_KEY", ""),
         stripe_webhook_secret=os.environ.get("STRIPE_WEBHOOK_SECRET", ""),

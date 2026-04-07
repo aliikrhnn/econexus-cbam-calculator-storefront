@@ -25,10 +25,11 @@ Vercel ortam değişkenlerinde en az şunları tanımlayın:
 - `STORE_MAC_SECURE_DOWNLOAD_URL`
 - `STORE_WINDOWS_SECURE_DOWNLOAD_URL`
 - `STORE_LICENSE_DURATION_DAYS=365`
-- `PAYMENT_MODE=stripe`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_PUBLISHABLE_KEY`
-- `STRIPE_WEBHOOK_SECRET`
+- `PAYMENT_MODE=lemonsqueezy`
+- `LEMON_SQUEEZY_API_KEY`
+- `LEMON_SQUEEZY_STORE_ID`
+- `LEMON_SQUEEZY_PRODUCT_ID`
+- `LEMON_SQUEEZY_VARIANT_ID`
 
 ## İndirme dosyası
 
@@ -145,7 +146,7 @@ Stateless `signed` modunda indirme linki süre bazlı korunur. SQLite tabanlı i
 Ödeme sonrası kullanıcıya 1 yıl geçerli bir lisans anahtarı gösterilir. Desktop uygulama bu anahtarı
 startup sırasında storefront üzerindeki `POST /api/license/validate` endpoint'i ile doğrular.
 
-Desktop uygulamada aşağıdaki ortam değişkeni tanımlanmalıdır:
+Desktop uygulamada aşağıdaki alan storefront domainine işaret etmelidir:
 
 ```text
 CBAM_LICENSE_API_BASE_URL=https://your-domain.com

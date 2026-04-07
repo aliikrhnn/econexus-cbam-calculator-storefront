@@ -1,5 +1,6 @@
 import os
 import sys
+from dataclasses import replace
 from importlib import reload
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import storefront.config as storefront_config
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from storefront import app as storefront_app_module
-from storefront.app import app, create_license_key, detect_platform
+from storefront.app import app, create_license_key, create_lemonsqueezy_checkout, detect_platform
 
 
 def test_detect_platform_mac():
@@ -125,3 +126,34 @@ def test_license_validation_endpoint_rejects_email_mismatch():
     assert response.status_code == 403
     assert payload["valid"] is False
     assert payload["error"] == "email_mismatch"
+
+
+def test_create_lemonsqueezy_checkout_returns_checkout_url(monkeypatch):
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return (
+                b'{"data":{"attributes":{"url":"https://checkout.lemonsqueezy.com/buy/test"}}}'
+            )
+
+    monkeypatch.setattr(
+        storefront_app_module,
+        "settings",
+        replace(
+            storefront_app_module.settings,
+            lemon_squeezy_api_key="key",
+            lemon_squeezy_store_id="339029",
+            lemon_squeezy_variant_id="1500397",
+        ),
+    )
+    monkeypatch.setattr("storefront.app.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    with app.test_request_context("/checkout?lang=en"):
+        checkout_url = create_lemonsqueezy_checkout(email="buyer@example.com", lang="en")
+
+    assert checkout_url == "https://checkout.lemonsqueezy.com/buy/test"

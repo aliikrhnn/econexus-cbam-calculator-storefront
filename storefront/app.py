@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, urlparse
+from urllib.request import Request, urlopen
 
 import stripe
 from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, url_for
@@ -324,6 +327,8 @@ def price_display() -> str:
 
 
 def is_download_available() -> bool:
+    if settings.payment_mode == "lemonsqueezy":
+        return True
     return bool(resolve_release_target("mac")[0] or resolve_release_target("mac")[1]) or bool(
         resolve_release_target("windows")[0] or resolve_release_target("windows")[1]
     )
@@ -393,6 +398,74 @@ def validate_license_key(*, email: str, license_key: str) -> tuple[bool, dict[st
         return False, payload, "license_expired"
 
     return True, payload, None
+
+
+def create_lemonsqueezy_checkout(*, email: str, lang: str) -> str:
+    if not settings.lemon_squeezy_api_key or not settings.lemon_squeezy_store_id or not settings.lemon_squeezy_variant_id:
+        raise RuntimeError("Lemon Squeezy is not configured.")
+
+    payload = {
+        "data": {
+            "type": "checkouts",
+            "attributes": {
+                "checkout_data": {
+                    "email": email,
+                    "custom": {
+                        "source": "econexus-cbam-storefront",
+                    },
+                },
+                "checkout_options": {
+                    "embed": False,
+                    "media": True,
+                    "logo": True,
+                    "desc": True,
+                    "discount": True,
+                    "subscription_preview": False,
+                    "button_color": "#163b70",
+                    "checkout_button_color": "#163b70",
+                    "dark": False,
+                    "language": lang,
+                },
+                "product_options": {
+                    "enabled_variants": [int(settings.lemon_squeezy_variant_id)],
+                    "redirect_url": f"{settings.base_url}{url_for('checkout_success', lang=lang)}",
+                    "receipt_button_text": "Open download instructions",
+                    "receipt_link_url": f"{settings.base_url}{url_for('checkout_success', lang=lang)}",
+                    "receipt_thank_you_note": "Keep your Lemon Squeezy license key and purchase email for desktop activation.",
+                },
+            },
+            "relationships": {
+                "store": {"data": {"type": "stores", "id": settings.lemon_squeezy_store_id}},
+                "variant": {"data": {"type": "variants", "id": settings.lemon_squeezy_variant_id}},
+            },
+        }
+    }
+
+    req = Request(
+        "https://api.lemonsqueezy.com/v1/checkouts",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {settings.lemon_squeezy_api_key}",
+            "Accept": "application/vnd.api+json",
+            "Content-Type": "application/vnd.api+json",
+        },
+    )
+
+    try:
+        with urlopen(req, timeout=30) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        app.logger.error("Lemon Squeezy checkout creation failed: %s", body)
+        raise RuntimeError("Lemon Squeezy checkout failed.") from exc
+    except URLError as exc:
+        raise RuntimeError("Lemon Squeezy checkout failed.") from exc
+
+    checkout_url = data.get("data", {}).get("attributes", {}).get("url", "").strip()
+    if not checkout_url:
+        raise RuntimeError("Lemon Squeezy checkout URL missing.")
+    return checkout_url
 
 
 def get_lang() -> str:
@@ -558,6 +631,11 @@ def checkout():
         app.logger.info("Created demo paid order %s for %s", checkout_ref, email)
         return redirect(url_for("checkout_success", session_id=checkout_ref, lang=lang, email=email))
 
+    if settings.payment_mode == "lemonsqueezy":
+        checkout_url = create_lemonsqueezy_checkout(email=email, lang=lang)
+        app.logger.info("Created Lemon Squeezy checkout for %s", email)
+        return redirect(checkout_url, code=303)
+
     if settings.payment_mode != "stripe" or not settings.stripe_secret_key:
         abort(500, "Stripe is not configured.")
 
@@ -587,6 +665,26 @@ def checkout():
 @app.get("/checkout/success")
 def checkout_success():
     lang = get_lang()
+    if settings.payment_mode == "lemonsqueezy":
+        return render_template(
+            "downloads.html",
+            product_name=settings.product_name,
+            current_lang=lang,
+            copy=get_copy(lang),
+            detected_platform=detect_platform(request.headers.get("User-Agent", "")),
+            mac_download_url="",
+            windows_download_url="",
+            mac_download_note="Access your downloads from the Lemon Squeezy receipt or My Orders page.",
+            windows_download_note="Use the license key from Lemon Squeezy to activate the desktop app after download.",
+            release_version=settings.release_version,
+            access_email="",
+            access_reference="",
+            expires_at=None,
+            license_key="Check your Lemon Squeezy order receipt",
+            license_expires_at=None,
+            secure_access=True,
+        )
+
     session_id = request.args.get("session_id", "").strip()
     if not session_id:
         abort(400, "Missing session id.")
