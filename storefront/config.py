@@ -16,8 +16,6 @@ class Settings:
     release_dir: Path
     mac_release_filename: str
     windows_release_filename: str
-    download_file: Path
-    download_url: str
     mac_download_url: str
     windows_download_url: str
     mac_secure_download_url: str
@@ -27,6 +25,7 @@ class Settings:
     release_version: str
     token_ttl_hours: int
     download_limit: int
+    license_duration_days: int
     payment_mode: str
     storage_mode: str
     stripe_secret_key: str
@@ -38,7 +37,9 @@ class Settings:
 def load_settings() -> Settings:
     project_root = Path(__file__).resolve().parent.parent
     data_dir = project_root / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
+    storage_mode = os.environ.get("STORE_STORAGE_MODE", "database").lower()
+    if storage_mode == "database":
+        data_dir.mkdir(parents=True, exist_ok=True)
 
     return Settings(
         secret_key=os.environ.get("SECRET_KEY", "dev-secret-key"),
@@ -58,13 +59,6 @@ def load_settings() -> Settings:
         ).expanduser(),
         mac_release_filename=os.environ.get("STORE_MAC_RELEASE_FILENAME", "CBAM_Engine_Mac.zip").strip(),
         windows_release_filename=os.environ.get("STORE_WINDOWS_RELEASE_FILENAME", "CBAM_Engine_Windows.zip").strip(),
-        download_file=Path(
-            os.environ.get(
-                "STORE_DOWNLOAD_FILE",
-                "/Users/macbook/Documents/claudeiledenemeşeyler/cbam_tool/CBAM_Engine_Mac.zip",
-            )
-        ).expanduser(),
-        download_url=os.environ.get("STORE_DOWNLOAD_URL", "").strip(),
         mac_download_url=os.environ.get("STORE_MAC_DOWNLOAD_URL", "").strip(),
         windows_download_url=os.environ.get("STORE_WINDOWS_DOWNLOAD_URL", "").strip(),
         mac_secure_download_url=os.environ.get("STORE_MAC_SECURE_DOWNLOAD_URL", "").strip(),
@@ -80,8 +74,9 @@ def load_settings() -> Settings:
         release_version=os.environ.get("STORE_RELEASE_VERSION", "Current release").strip(),
         token_ttl_hours=int(os.environ.get("STORE_TOKEN_TTL_HOURS", "72")),
         download_limit=int(os.environ.get("STORE_DOWNLOAD_LIMIT", "3")),
+        license_duration_days=int(os.environ.get("STORE_LICENSE_DURATION_DAYS", "365")),
         payment_mode=os.environ.get("PAYMENT_MODE", "demo").lower(),
-        storage_mode=os.environ.get("STORE_STORAGE_MODE", "database").lower(),
+        storage_mode=storage_mode,
         stripe_secret_key=os.environ.get("STRIPE_SECRET_KEY", ""),
         stripe_publishable_key=os.environ.get("STRIPE_PUBLISHABLE_KEY", ""),
         stripe_webhook_secret=os.environ.get("STRIPE_WEBHOOK_SECRET", ""),

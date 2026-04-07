@@ -34,6 +34,7 @@ if settings.stripe_secret_key:
     stripe.api_key = settings.stripe_secret_key
 
 download_serializer = URLSafeTimedSerializer(settings.secret_key, salt="cbam-storefront-download")
+license_serializer = URLSafeTimedSerializer(settings.secret_key, salt="cbam-storefront-license")
 
 
 SUPPORTED_LANGUAGES = ("tr", "en", "de")
@@ -69,7 +70,7 @@ COPY = {
         "trust_1": "CBAM hesapları",
         "trust_2": "Ürün bazlı çıktı",
         "trust_3": "Excel raporu",
-        "download_missing": "Uygulama dosyası henüz sunucuya bağlanmamış. `STORE_DOWNLOAD_FILE` ayarını yapın.",
+        "download_missing": "İndirme bağlantısı henüz eklenmedi. Platform bazlı release dosyası veya URL ayarlarını yapılandırın.",
         "metric_1_label": "Hesap kapsamı",
         "metric_1_title": "Direct + Indirect",
         "metric_1_text": "Gömülü emisyonların ana CBAM kalemleri tek akışta hesaplanır.",
@@ -161,7 +162,7 @@ COPY = {
         "trust_1": "CBAM calculations",
         "trust_2": "Product-level output",
         "trust_3": "Excel report",
-        "download_missing": "The application file is not connected yet. Set `STORE_DOWNLOAD_FILE` first.",
+        "download_missing": "The download target is not configured yet. Set the platform release file or URL values first.",
         "metric_1_label": "Calculation scope",
         "metric_1_title": "Direct + Indirect",
         "metric_1_text": "Core CBAM embedded-emissions items are calculated in one flow.",
@@ -253,7 +254,7 @@ COPY = {
         "trust_1": "CBAM-Berechnungen",
         "trust_2": "Produktbezogene Ausgabe",
         "trust_3": "Excel-Bericht",
-        "download_missing": "Die Anwendungsdatei ist noch nicht verbunden. Setzen Sie zuerst `STORE_DOWNLOAD_FILE`.",
+        "download_missing": "Das Download-Ziel ist noch nicht konfiguriert. Legen Sie zuerst die plattformspezifischen Release-Dateien oder URLs fest.",
         "metric_1_label": "Berechnungsumfang",
         "metric_1_title": "Direkt + Indirekt",
         "metric_1_text": "Die zentralen CBAM-Positionen für eingebettete Emissionen werden in einem Ablauf berechnet.",
@@ -350,6 +351,48 @@ def create_signed_download_token(*, checkout_ref: str, email: str, payment_mode:
 
 def load_signed_download_token(token: str) -> dict[str, str]:
     return download_serializer.loads(token, max_age=settings.token_ttl_hours * 3600)
+
+
+def create_license_key(*, checkout_ref: str, email: str) -> str:
+    issued_at = datetime.now(UTC).replace(microsecond=0)
+    expires_at = datetime.fromtimestamp(
+        issued_at.timestamp() + settings.license_duration_days * 86400,
+        tz=UTC,
+    )
+    return license_serializer.dumps(
+        {
+            "checkout_ref": checkout_ref,
+            "email": email.strip().lower(),
+            "issued_at": issued_at.isoformat(),
+            "expires_at": expires_at.isoformat(),
+        }
+    )
+
+
+def load_license_key(license_key: str) -> dict[str, str]:
+    return license_serializer.loads(license_key)
+
+
+def validate_license_key(*, email: str, license_key: str) -> tuple[bool, dict[str, str] | None, str | None]:
+    try:
+        payload = load_license_key(license_key.strip())
+    except BadSignature:
+        return False, None, "invalid_license"
+
+    normalized_email = email.strip().lower()
+    if payload.get("email", "").strip().lower() != normalized_email:
+        return False, None, "email_mismatch"
+
+    expires_at = payload.get("expires_at", "")
+    try:
+        expires_at_value = datetime.fromisoformat(expires_at)
+    except ValueError:
+        return False, None, "invalid_license"
+
+    if expires_at_value < datetime.now(UTC):
+        return False, payload, "license_expired"
+
+    return True, payload, None
 
 
 def get_lang() -> str:
@@ -498,7 +541,7 @@ def checkout():
         abort(400, "Email is required.")
 
     if not is_download_available():
-        abort(500, "Download file is not configured.")
+        abort(500, "Download target is not configured.")
 
     if settings.payment_mode == "demo":
         checkout_ref = f"demo_{datetime.now(UTC).timestamp()}"
@@ -598,6 +641,11 @@ def checkout_success():
         access_token = order["token"]
         expires_at = datetime.fromisoformat(order["token_expires_at"])
 
+    license_key = create_license_key(
+        checkout_ref=order["checkout_ref"],
+        email=order["email"],
+    )
+    license_payload = load_license_key(license_key)
     mac_download_url, windows_download_url = resolve_platform_download_urls(access_token=access_token)
     detected_platform = detect_platform(request.headers.get("User-Agent", ""))
 
@@ -615,7 +663,38 @@ def checkout_success():
         access_email=order["email"],
         access_reference=order["checkout_ref"],
         expires_at=expires_at,
+        license_key=license_key,
+        license_expires_at=datetime.fromisoformat(license_payload["expires_at"]),
         secure_access=True,
+    )
+
+
+@app.post("/api/license/validate")
+def validate_license():
+    payload = request.get_json(silent=True) or {}
+    email = str(payload.get("email", "")).strip()
+    license_key = str(payload.get("license_key", "")).strip()
+    device_id = str(payload.get("device_id", "")).strip()
+
+    if not email or not license_key:
+        return jsonify({"valid": False, "error": "missing_credentials"}), 400
+    if not device_id:
+        return jsonify({"valid": False, "error": "missing_device_id"}), 400
+
+    is_valid, license_payload, error = validate_license_key(email=email, license_key=license_key)
+    if not is_valid or license_payload is None:
+        status_code = 403 if error in {"email_mismatch", "license_expired"} else 400
+        return jsonify({"valid": False, "error": error}), status_code
+
+    return jsonify(
+        {
+            "valid": True,
+            "email": license_payload["email"],
+            "checkout_ref": license_payload["checkout_ref"],
+            "expires_at": license_payload["expires_at"],
+            "issued_at": license_payload["issued_at"],
+            "device_id": device_id,
+        }
     )
 
 

@@ -1,11 +1,14 @@
 import os
 import sys
+from importlib import reload
 from pathlib import Path
+
+import storefront.config as storefront_config
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from storefront import app as storefront_app_module
-from storefront.app import app, detect_platform
+from storefront.app import app, create_license_key, detect_platform
 
 
 def test_detect_platform_mac():
@@ -28,9 +31,8 @@ def test_downloads_page_renders_platform_links():
     assert "CBAM_Engine_Windows.zip" in html
 
 
-def test_release_download_serves_zip_only(tmp_path, monkeypatch):
-    zip_path = tmp_path / "CBAM_Engine_Mac.zip"
-    zip_path.write_bytes(b"zip")
+def test_release_download_serves_zip_only(monkeypatch):
+    zip_path = Path(os.path.dirname(os.path.dirname(__file__))) / "releases" / "CBAM_Engine_Mac.zip"
 
     monkeypatch.setattr(
         storefront_app_module,
@@ -49,3 +51,77 @@ def test_release_download_serves_zip_only(tmp_path, monkeypatch):
     assert response.status_code == 200
     assert "CBAM_Engine_Mac.zip" in response.headers.get("Content-Disposition", "")
     assert response.headers.get("Content-Type", "").startswith("application/zip")
+
+
+def test_load_settings_skips_data_dir_creation_in_signed_mode(monkeypatch):
+    mkdir_calls = []
+
+    def fake_mkdir(self, parents=False, exist_ok=False):
+        mkdir_calls.append((self, parents, exist_ok))
+
+    monkeypatch.setenv("STORE_STORAGE_MODE", "signed")
+    monkeypatch.setattr(Path, "mkdir", fake_mkdir)
+
+    reload(storefront_config)
+    settings = storefront_config.load_settings()
+
+    assert settings.storage_mode == "signed"
+    assert mkdir_calls == []
+
+
+def test_load_settings_creates_data_dir_in_database_mode(monkeypatch):
+    mkdir_calls = []
+
+    def fake_mkdir(self, parents=False, exist_ok=False):
+        mkdir_calls.append((self, parents, exist_ok))
+
+    monkeypatch.setenv("STORE_STORAGE_MODE", "database")
+    monkeypatch.setattr(Path, "mkdir", fake_mkdir)
+
+    reload(storefront_config)
+    settings = storefront_config.load_settings()
+
+    assert settings.storage_mode == "database"
+    assert len(mkdir_calls) == 1
+    _, parents, exist_ok = mkdir_calls[0]
+    assert parents is True
+    assert exist_ok is True
+
+
+def test_license_validation_endpoint_accepts_valid_license():
+    license_key = create_license_key(checkout_ref="order-123", email="buyer@example.com")
+    client = app.test_client()
+
+    response = client.post(
+        "/api/license/validate",
+        json={
+            "email": "buyer@example.com",
+            "license_key": license_key,
+            "device_id": "device-1",
+        },
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["valid"] is True
+    assert payload["email"] == "buyer@example.com"
+    assert payload["checkout_ref"] == "order-123"
+
+
+def test_license_validation_endpoint_rejects_email_mismatch():
+    license_key = create_license_key(checkout_ref="order-123", email="buyer@example.com")
+    client = app.test_client()
+
+    response = client.post(
+        "/api/license/validate",
+        json={
+            "email": "other@example.com",
+            "license_key": license_key,
+            "device_id": "device-1",
+        },
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 403
+    assert payload["valid"] is False
+    assert payload["error"] == "email_mismatch"

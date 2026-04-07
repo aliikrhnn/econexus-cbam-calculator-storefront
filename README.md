@@ -20,11 +20,11 @@ Vercel ortam değişkenlerinde en az şunları tanımlayın:
 - `SECRET_KEY`
 - `STORE_BASE_URL`
 - `STORE_STORAGE_MODE=signed`
-- `STORE_DOWNLOAD_URL`
 - `STORE_MAC_DOWNLOAD_URL`
 - `STORE_WINDOWS_DOWNLOAD_URL`
 - `STORE_MAC_SECURE_DOWNLOAD_URL`
 - `STORE_WINDOWS_SECURE_DOWNLOAD_URL`
+- `STORE_LICENSE_DURATION_DAYS=365`
 - `PAYMENT_MODE=stripe`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_PUBLISHABLE_KEY`
@@ -38,9 +38,7 @@ Vercel üzerinde uygulama dosyasını sunucu diski üzerinden vermeyin. Bunun ye
 - S3 / Cloudflare R2
 - güvenli bir doğrudan dosya URL'si
 
-kullanıp bu adresi `STORE_DOWNLOAD_URL` içine koyun.
-
-`STORE_DOWNLOAD_FILE` sadece lokal geliştirme için uygundur.
+kullanıp platform bazlı adresleri `STORE_MAC_DOWNLOAD_URL` ve `STORE_WINDOWS_DOWNLOAD_URL` içine koyun.
 
 ## Release artifact yapısı
 
@@ -114,7 +112,7 @@ Lokal kullanım için örnek ayar:
 ```env
 STORE_STORAGE_MODE=database
 PAYMENT_MODE=demo
-STORE_DOWNLOAD_FILE=/absolute/path/to/CBAM_Engine_Mac.zip
+STORE_RELEASE_DIR=/absolute/path/to/releases
 ```
 
 ## Vercel deploy akışı
@@ -141,3 +139,14 @@ https://your-domain.com/webhooks/stripe
 ## Not
 
 Stateless `signed` modunda indirme linki süre bazlı korunur. SQLite tabanlı indirme sayacı mantığı Vercel üretim akışında kullanılmaz.
+
+## Desktop lisans doğrulama
+
+Ödeme sonrası kullanıcıya 1 yıl geçerli bir lisans anahtarı gösterilir. Desktop uygulama bu anahtarı
+startup sırasında storefront üzerindeki `POST /api/license/validate` endpoint'i ile doğrular.
+
+Desktop uygulamada aşağıdaki ortam değişkeni tanımlanmalıdır:
+
+```text
+CBAM_LICENSE_API_BASE_URL=https://your-domain.com
+```

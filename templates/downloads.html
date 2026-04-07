@@ -47,6 +47,14 @@
             <span>{{ access_email }}</span>
             <span>{{ access_reference }}</span>
           </div>
+          <div class="order-meta secure-meta">
+            <span>License key</span>
+            <span>{{ license_key }}</span>
+          </div>
+          <div class="order-meta secure-meta">
+            <span>License valid until</span>
+            <span>{{ license_expires_at.strftime('%d.%m.%Y %H:%M UTC') }}</span>
+          </div>
           {% endif %}
           <div class="device-chip">
             <strong>{{ copy.downloads_hint }}</strong>
