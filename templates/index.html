@@ -6,208 +6,342 @@
   <title>{{ copy.page_title }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-  <main class="page-shell">
-    <section class="hero-panel">
-      <div class="top-ribbon">
-        <span class="eyebrow">{{ copy.eyebrow }}</span>
-        <div class="top-actions">
-          <nav class="language-switcher" aria-label="Language selector">
-            <a href="{{ url_for('index', lang='tr') }}" class="{{ 'active' if current_lang == 'tr' else '' }}">TR</a>
-            <a href="{{ url_for('index', lang='en') }}" class="{{ 'active' if current_lang == 'en' else '' }}">EN</a>
-            <a href="{{ url_for('index', lang='de') }}" class="{{ 'active' if current_lang == 'de' else '' }}">DE</a>
-          </nav>
-          <a class="top-button top-button-secondary" href="https://alegstudio.com" target="_blank" rel="noreferrer">Aleg Studio</a>
-          <a class="top-button top-button-primary" href="#pricing">{{ copy.jump_link }}</a>
-        </div>
+
+  <!-- ── Top navigation ──────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div class="brand-mark">
+        <span class="brand-dot"></span>
+        <span class="brand-name">{{ copy.eyebrow }}</span>
+      </div>
+      <div class="header-center">
+        <a href="#how-it-works" class="nav-link">{{ copy.workflow_kicker }}</a>
+        <a href="#features" class="nav-link">{{ copy.features_kicker }}</a>
+        <a href="#pricing" class="nav-link">{{ copy.license_tag }}</a>
+      </div>
+      <div class="header-right">
+        <nav class="lang-switcher" aria-label="Language selector">
+          <a href="{{ url_for('index', lang='tr') }}" class="{{ 'lang-active' if current_lang == 'tr' else '' }}">TR</a>
+          <a href="{{ url_for('index', lang='en') }}" class="{{ 'lang-active' if current_lang == 'en' else '' }}">EN</a>
+          <a href="{{ url_for('index', lang='de') }}" class="{{ 'lang-active' if current_lang == 'de' else '' }}">DE</a>
+        </nav>
+        <a class="btn-ghost" href="https://alegstudio.com" target="_blank" rel="noreferrer">Aleg Studio</a>
+        <a class="btn-primary" href="#pricing">{{ copy.jump_link }}</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── Hero ────────────────────────────────────────────────────── -->
+    <section class="hero">
+
+      <!-- World map background -->
+      <div class="hero-map" aria-hidden="true">
+        <svg class="world-map-svg" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <!-- simplified world landmasses as dots/paths -->
+          <defs>
+            <radialGradient id="mapGlow" cx="50%" cy="50%" r="60%">
+              <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.15"/>
+              <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <ellipse cx="500" cy="250" rx="480" ry="230" fill="url(#mapGlow)"/>
+          <!-- Europe -->
+          <path d="M470 110 Q490 95 520 100 Q545 95 555 110 Q560 130 545 140 Q530 150 510 145 Q490 148 475 140 Q462 130 470 110Z" fill="rgba(59,130,246,0.2)" stroke="rgba(59,130,246,0.4)" stroke-width="0.5"/>
+          <!-- Turkey highlight -->
+          <path d="M535 128 Q560 122 590 125 Q610 128 615 138 Q610 148 590 150 Q565 152 545 148 Q530 143 535 128Z" fill="rgba(59,130,246,0.45)" stroke="rgba(99,179,255,0.7)" stroke-width="0.8"/>
+          <!-- Africa -->
+          <path d="M470 160 Q500 155 520 165 Q540 175 545 210 Q548 245 530 268 Q510 280 490 275 Q468 265 460 240 Q450 215 455 190 Q460 170 470 160Z" fill="rgba(59,130,246,0.15)" stroke="rgba(59,130,246,0.3)" stroke-width="0.5"/>
+          <!-- Egypt highlight -->
+          <path d="M510 165 Q535 162 545 172 Q552 182 545 192 Q530 198 512 195 Q498 190 495 180 Q498 168 510 165Z" fill="rgba(59,130,246,0.4)" stroke="rgba(99,179,255,0.6)" stroke-width="0.8"/>
+          <!-- Asia -->
+          <path d="M565 85 Q620 75 700 80 Q760 82 800 95 Q840 110 845 130 Q840 155 800 165 Q750 170 700 162 Q650 155 610 160 Q570 162 555 150 Q545 138 555 120 Q558 100 565 85Z" fill="rgba(59,130,246,0.12)" stroke="rgba(59,130,246,0.25)" stroke-width="0.5"/>
+          <!-- Americas -->
+          <path d="M150 100 Q185 90 210 100 Q230 112 228 135 Q225 160 210 175 Q192 185 170 178 Q148 168 140 148 Q132 125 150 100Z" fill="rgba(59,130,246,0.12)" stroke="rgba(59,130,246,0.25)" stroke-width="0.5"/>
+          <path d="M165 185 Q190 178 208 190 Q225 205 222 240 Q218 280 200 310 Q182 335 162 330 Q142 320 135 295 Q128 265 138 235 Q148 205 165 185Z" fill="rgba(59,130,246,0.12)" stroke="rgba(59,130,246,0.25)" stroke-width="0.5"/>
+          <!-- Peru highlight -->
+          <path d="M168 228 Q188 222 200 232 Q210 244 206 260 Q198 272 182 270 Q166 265 162 250 Q160 237 168 228Z" fill="rgba(59,130,246,0.4)" stroke="rgba(99,179,255,0.6)" stroke-width="0.8"/>
+          <!-- Connection lines: Turkey → EU, Egypt → EU, Peru → EU -->
+          <line x1="570" y1="138" x2="510" y2="118" stroke="rgba(99,179,255,0.35)" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="525" y1="180" x2="510" y2="118" stroke="rgba(99,179,255,0.35)" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="186" y1="248" x2="510" y2="118" stroke="rgba(99,179,255,0.25)" stroke-width="1" stroke-dasharray="4,3"/>
+          <!-- EU center dot -->
+          <circle cx="510" cy="118" r="5" fill="#3b82f6" opacity="0.9"/>
+          <circle cx="510" cy="118" r="10" fill="rgba(59,130,246,0.25)"/>
+          <!-- Country dots -->
+          <circle cx="570" cy="138" r="3.5" fill="#60a5fa" opacity="0.9"/>
+          <circle cx="525" cy="180" r="3.5" fill="#60a5fa" opacity="0.9"/>
+          <circle cx="186" cy="248" r="3.5" fill="#60a5fa" opacity="0.9"/>
+        </svg>
       </div>
 
-      <div class="hero-grid">
-        <div class="hero-copy">
+      <div class="hero-inner">
+        <!-- Left: copy + hero points -->
+        <div class="hero-left">
           <div class="hero-badge">{{ copy.hero_badge }}</div>
           <h1>{{ product_name }}</h1>
-          <p class="lead">{{ copy.lead }}</p>
-          <p class="sublead">{{ copy.sublead }}</p>
+          <p class="hero-lead">{{ copy.lead }}</p>
+          <p class="hero-sublead">{{ copy.sublead }}</p>
 
-          <div class="hero-points">
-            <div class="hero-point">
+          <div class="hero-stats">
+            <div class="hero-stat">
               <strong>{{ copy.hero_point_1_title }}</strong>
               <span>{{ copy.hero_point_1_text }}</span>
             </div>
-            <div class="hero-point">
+            <div class="hero-stat">
               <strong>{{ copy.hero_point_2_title }}</strong>
               <span>{{ copy.hero_point_2_text }}</span>
             </div>
-            <div class="hero-point">
+            <div class="hero-stat">
               <strong>{{ copy.hero_point_3_title }}</strong>
               <span>{{ copy.hero_point_3_text }}</span>
             </div>
           </div>
         </div>
 
-        <aside class="purchase-card" id="pricing">
-          <p class="card-tag">{{ copy.license_tag }}</p>
-          <div class="price-row">
-            <strong>{{ price_display }}</strong>
-            <span>{{ copy.price_note }}</span>
-          </div>
-
-          <div class="platform-strip">
-            <span>macOS desktop</span>
-            <span>Windows desktop</span>
-            <span>Annual commercial use</span>
-          </div>
-
-          <div class="purchase-meta">
-            <div>
-              <b>{{ copy.delivery_title }}</b>
-              <span>{{ copy.delivery_text }}</span>
+        <!-- Right: purchase card -->
+        <div class="hero-right" id="pricing">
+          <div class="purchase-card">
+            <p class="card-label">{{ copy.license_tag }}</p>
+            <div class="price-block">
+              <strong class="price-value">{{ price_display }}</strong>
+              <span class="price-note">{{ copy.price_note }}</span>
             </div>
-            <div>
-              <b>{{ copy.usage_title }}</b>
-              <span>{{ copy.usage_text }}</span>
+
+            <div class="platform-pills">
+              <span>macOS</span>
+              <span>Windows</span>
+              <span>Annual license</span>
             </div>
+
+            <div class="meta-grid">
+              <div class="meta-row">
+                <b>{{ copy.delivery_title }}</b>
+                <span>{{ copy.delivery_text }}</span>
+              </div>
+              <div class="meta-row">
+                <b>{{ copy.usage_title }}</b>
+                <span>{{ copy.usage_text }}</span>
+              </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('checkout') }}" class="buy-form">
+              <input type="hidden" name="lang" value="{{ current_lang }}" />
+              <label for="email">{{ copy.email_label }}</label>
+              <input id="email" name="email" type="email" placeholder="{{ copy.email_placeholder }}" required />
+              <button type="submit">{{ copy.buy_button }}</button>
+            </form>
+
+            <div class="trust-badges">
+              <span>{{ copy.trust_1 }}</span>
+              <span>{{ copy.trust_2 }}</span>
+              <span>{{ copy.trust_3 }}</span>
+            </div>
+
+            {% if not download_available %}
+            <p class="card-error">{{ copy.download_missing }}</p>
+            {% endif %}
           </div>
-
-          <form method="POST" action="{{ url_for('checkout') }}" class="checkout-form">
-            <input type="hidden" name="lang" value="{{ current_lang }}" />
-            <label for="email">{{ copy.email_label }}</label>
-            <input id="email" name="email" type="email" placeholder="{{ copy.email_placeholder }}" required />
-            <button type="submit">{{ copy.buy_button }}</button>
-          </form>
-
-          <div class="trust-strip">
-            <span>{{ copy.trust_1 }}</span>
-            <span>{{ copy.trust_2 }}</span>
-            <span>{{ copy.trust_3 }}</span>
-          </div>
-
-          {% if not download_available %}
-          <p class="error-note">{{ copy.download_missing }}</p>
-          {% endif %}
-        </aside>
+        </div>
       </div>
 
-      <div class="metrics-row">
-        <article class="metric-card">
-          <span class="metric-label">{{ copy.metric_1_label }}</span>
-          <strong>{{ copy.metric_1_title }}</strong>
-          <p>{{ copy.metric_1_text }}</p>
-        </article>
-        <article class="metric-card">
-          <span class="metric-label">{{ copy.metric_2_label }}</span>
-          <strong>{{ copy.metric_2_title }}</strong>
-          <p>{{ copy.metric_2_text }}</p>
-        </article>
-        <article class="metric-card">
-          <span class="metric-label">{{ copy.metric_3_label }}</span>
-          <strong>{{ copy.metric_3_title }}</strong>
-          <p>{{ copy.metric_3_text }}</p>
-        </article>
+      <!-- App mockup -->
+      <div class="app-mockup-wrap">
+        <div class="app-mockup">
+          <div class="app-chrome">
+            <span class="chrome-dot dot-red"></span>
+            <span class="chrome-dot dot-yellow"></span>
+            <span class="chrome-dot dot-green"></span>
+            <span class="chrome-title">CBAM Engine — Hesap #2026-04</span>
+          </div>
+          <div class="app-body">
+            <div class="app-sidebar">
+              <div class="sidebar-item sidebar-active">{{ copy.workflow_1_title }}</div>
+              <div class="sidebar-item">{{ copy.workflow_2_title }}</div>
+              <div class="sidebar-item">{{ copy.workflow_3_title }}</div>
+              <div class="sidebar-item">{{ copy.feature_2_title }}</div>
+              <div class="sidebar-item">{{ copy.feature_6_title }}</div>
+            </div>
+            <div class="app-content">
+              <div class="app-header-row">
+                <span class="app-section-title">{{ copy.metric_1_title }}</span>
+                <span class="app-badge-green">{{ copy.metric_3_title }}</span>
+              </div>
+              <div class="app-metrics">
+                <div class="app-metric-card">
+                  <span>{{ copy.metric_1_label }}</span>
+                  <strong>{{ copy.metric_1_title }}</strong>
+                </div>
+                <div class="app-metric-card app-metric-accent">
+                  <span>{{ copy.metric_2_label }}</span>
+                  <strong>{{ copy.metric_2_title }}</strong>
+                </div>
+                <div class="app-metric-card">
+                  <span>{{ copy.metric_3_label }}</span>
+                  <strong>{{ copy.metric_3_title }}</strong>
+                </div>
+              </div>
+              <div class="app-table">
+                <div class="app-table-head">
+                  <span>Ürün</span>
+                  <span>Direkt (tCO₂e)</span>
+                  <span>Dolaylı (tCO₂e)</span>
+                  <span>Net CBAM</span>
+                </div>
+                <div class="app-table-row">
+                  <span>Ürün A</span>
+                  <span>1.240</span>
+                  <span>380</span>
+                  <span class="val-green">€ 142.450</span>
+                </div>
+                <div class="app-table-row app-row-alt">
+                  <span>Ürün B</span>
+                  <span>2.780</span>
+                  <span>620</span>
+                  <span class="val-green">€ 298.760</span>
+                </div>
+                <div class="app-table-row">
+                  <span>Ürün C</span>
+                  <span>840</span>
+                  <span>210</span>
+                  <span class="val-green">€ 92.340</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
     </section>
 
-    <section class="workflow-section">
+    <!-- ── Metrics strip ──────────────────────────────────────────── -->
+    <section class="metrics-strip content-section">
+      <article class="metric-tile">
+        <span class="metric-kicker">{{ copy.metric_1_label }}</span>
+        <strong class="metric-title">{{ copy.metric_1_title }}</strong>
+        <p>{{ copy.metric_1_text }}</p>
+      </article>
+      <article class="metric-tile">
+        <span class="metric-kicker">{{ copy.metric_2_label }}</span>
+        <strong class="metric-title">{{ copy.metric_2_title }}</strong>
+        <p>{{ copy.metric_2_text }}</p>
+      </article>
+      <article class="metric-tile">
+        <span class="metric-kicker">{{ copy.metric_3_label }}</span>
+        <strong class="metric-title">{{ copy.metric_3_title }}</strong>
+        <p>{{ copy.metric_3_text }}</p>
+      </article>
+    </section>
+
+    <!-- ── How it works ───────────────────────────────────────────── -->
+    <section class="content-section" id="how-it-works">
       <div class="section-head">
-        <span class="section-kicker">{{ copy.workflow_kicker }}</span>
+        <span class="kicker">{{ copy.workflow_kicker }}</span>
         <h2>{{ copy.workflow_title }}</h2>
       </div>
-      <div class="workflow-grid">
-        <article class="workflow-card">
-          <span class="step-index">01</span>
+      <div class="cards-grid cols-3">
+        <article class="card">
+          <span class="step-num">01</span>
           <h3>{{ copy.workflow_1_title }}</h3>
           <p>{{ copy.workflow_1_text }}</p>
         </article>
-        <article class="workflow-card">
-          <span class="step-index">02</span>
+        <article class="card">
+          <span class="step-num">02</span>
           <h3>{{ copy.workflow_2_title }}</h3>
           <p>{{ copy.workflow_2_text }}</p>
         </article>
-        <article class="workflow-card">
-          <span class="step-index">03</span>
+        <article class="card">
+          <span class="step-num">03</span>
           <h3>{{ copy.workflow_3_title }}</h3>
           <p>{{ copy.workflow_3_text }}</p>
         </article>
       </div>
     </section>
 
-    <section class="features-section">
+    <!-- ── Features ───────────────────────────────────────────────── -->
+    <section class="content-section" id="features">
       <div class="section-head">
-        <span class="section-kicker">{{ copy.features_kicker }}</span>
+        <span class="kicker">{{ copy.features_kicker }}</span>
         <h2>{{ copy.features_title }}</h2>
       </div>
-      <div class="features-grid">
-        <article class="feature-tile feature-wide">
+      <div class="cards-grid cols-3 features-grid">
+        <article class="card card-wide">
           <h3>{{ copy.feature_1_title }}</h3>
           <p>{{ copy.feature_1_text }}</p>
         </article>
-        <article class="feature-tile">
+        <article class="card">
           <h3>{{ copy.feature_2_title }}</h3>
           <p>{{ copy.feature_2_text }}</p>
         </article>
-        <article class="feature-tile">
+        <article class="card">
           <h3>{{ copy.feature_3_title }}</h3>
           <p>{{ copy.feature_3_text }}</p>
         </article>
-        <article class="feature-tile">
+        <article class="card">
           <h3>{{ copy.feature_4_title }}</h3>
           <p>{{ copy.feature_4_text }}</p>
         </article>
-        <article class="feature-tile">
+        <article class="card">
           <h3>{{ copy.feature_5_title }}</h3>
           <p>{{ copy.feature_5_text }}</p>
         </article>
-        <article class="feature-tile feature-accent">
+        <article class="card card-accent">
           <h3>{{ copy.feature_6_title }}</h3>
           <p>{{ copy.feature_6_text }}</p>
         </article>
       </div>
     </section>
 
-    <section class="spotlight-section">
+    <!-- ── Spotlight ──────────────────────────────────────────────── -->
+    <section class="content-section">
       <div class="section-head">
-        <span class="section-kicker">{{ copy.spotlight_kicker }}</span>
+        <span class="kicker">{{ copy.spotlight_kicker }}</span>
         <h2>{{ copy.spotlight_title }}</h2>
       </div>
-      <div class="spotlight-grid">
-        <article class="spotlight-card">
+      <div class="cards-grid cols-3">
+        <article class="card card-dark">
           <h3>{{ copy.spotlight_1_title }}</h3>
           <p>{{ copy.spotlight_1_text }}</p>
         </article>
-        <article class="spotlight-card">
+        <article class="card card-dark">
           <h3>{{ copy.spotlight_2_title }}</h3>
           <p>{{ copy.spotlight_2_text }}</p>
         </article>
-        <article class="spotlight-card">
+        <article class="card card-dark">
           <h3>{{ copy.spotlight_3_title }}</h3>
           <p>{{ copy.spotlight_3_text }}</p>
         </article>
       </div>
     </section>
 
-    <section class="fit-section">
+    <!-- ── Fit ────────────────────────────────────────────────────── -->
+    <section class="content-section">
       <div class="section-head">
-        <span class="section-kicker">Recommended fit</span>
+        <span class="kicker">Recommended fit</span>
         <h2>Kimler için daha doğru bir çözüm</h2>
       </div>
-      <div class="fit-grid">
-        <article class="fit-card">
+      <div class="cards-grid cols-3">
+        <article class="card">
           <h3>İhracat ekipleri</h3>
           <p>CBAM yükümlülüğünü iç kaynakla hızlı hesaplamak ve çıktı üretmek isteyen operasyon ekipleri için.</p>
         </article>
-        <article class="fit-card">
+        <article class="card">
           <h3>Danışmanlık ekipleri</h3>
           <p>Müşteri bazlı hesap, tekrar kullanım ve XLSX teslim çıktısı gerektiren danışmanlık akışları için.</p>
         </article>
-        <article class="fit-card">
+        <article class="card">
           <h3>Teknik karar vericiler</h3>
           <p>Ürün bazlı özetleri, precursor etkisini ve allocation sonuçlarını tek ekranda görmek isteyen ekipler için.</p>
         </article>
       </div>
     </section>
+
   </main>
+
 </body>
 </html>
