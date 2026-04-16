@@ -862,6 +862,120 @@ h1, h2, h3 { font-family: "Space Grotesk", "Inter", sans-serif; line-height: 1.1
 
 
 /* ══════════════════════════════════════════════════════════════
+   HIGHLIGHT STRIP (3-card banner)
+══════════════════════════════════════════════════════════════ */
+.highlight-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 1280px;
+  margin: 0 auto 0;
+  padding: 0 32px;
+  gap: 16px;
+  margin-bottom: -8px;
+}
+
+.hl-card {
+  border-radius: 18px;
+  padding: 36px 32px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  position: relative;
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease);
+}
+
+.hl-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--sh-xl);
+}
+
+/* Blue card */
+.hl-blue {
+  background: #1a56db;
+}
+
+.hl-blue h3 {
+  font-size: clamp(20px, 2.5vw, 28px);
+  font-weight: 800;
+  color: #bfdbfe;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+.hl-blue p {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* White card */
+.hl-white {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--sh-md);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.hl-eu-flag {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.hl-compliance {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.hl-compliance strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  display: block;
+}
+
+/* Dark card */
+.hl-dark {
+  background:
+    linear-gradient(160deg, rgba(5,150,105,0.25) 0%, rgba(13,27,42,0.95) 55%),
+    linear-gradient(135deg, #0d1f35 0%, #0a2d1e 100%);
+  justify-content: flex-end;
+}
+
+.hl-dark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23059669' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+
+.hl-dark h3 {
+  position: relative;
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+
+@media (max-width: 900px) {
+  .highlight-strip { grid-template-columns: 1fr 1fr; padding: 0 16px; }
+  .hl-dark { grid-column: span 2; }
+}
+
+@media (max-width: 600px) {
+  .highlight-strip { grid-template-columns: 1fr; }
+  .hl-dark { grid-column: span 1; }
+}
+
+/* ══════════════════════════════════════════════════════════════
    SUCCESS / DOWNLOADS
 ══════════════════════════════════════════════════════════════ */
 .success-shell {
