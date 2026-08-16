@@ -1,153 +1,73 @@
-# CBAM Storefront
+# EcoNexus CBAM — Storefront
 
-CBAM masaüstü uygulamasını satmak için hazırlanmış tek sayfalık satış sitesi.
+The sales and licensing storefront for a desktop CBAM calculator: it takes payment, issues
+a time-limited licence and serves the application download over signed, expiring links.
 
-Bu proje ana CBAM uygulamasından bağımsızdır ve GitHub üzerinden Vercel'e deploy edilecek şekilde ayarlanmıştır.
+The EU **Carbon Border Adjustment Mechanism** requires importers of goods such as steel,
+cement, aluminium and fertiliser to report the embedded emissions of what they bring into
+the Union, and eventually to surrender certificates against them. The desktop tool does
+that calculation. This repository is everything around it — the part that sells it.
 
-## Deploy modeli
+## What it handles
 
-Bu repo artık iki farklı çalışma modu destekler:
+- Single-page product and pricing site
+- Checkout through Lemon Squeezy, with Stripe supported as an alternative
+- Licence issuance on successful payment, with a configurable duration
+  (`STORE_LICENSE_DURATION_DAYS`, default 365)
+- Signed, expiring download URLs for the macOS and Windows builds
+- Order records, with release artefacts tracked in `releases/`
 
-- `database`: Lokal geliştirme için SQLite tabanlı sipariş kaydı
-- `signed`: Vercel için stateless, imzalı indirme linki
+## Two storage modes
 
-Vercel üzerinde kalıcı yerel disk güvenilir olmadığı için üretimde `signed` modu önerilir.
+The interesting constraint in this repository is that it deploys to Vercel, where there
+is no reliable persistent local disk and no long-lived process. So it ships two modes:
 
-## Vercel için gerekenler
+| Mode | Behaviour | Use |
+| --- | --- | --- |
+| `database` | SQLite-backed order records | Local development |
+| `signed` | Stateless — the download grant is a signed, expiring token, verified on request | Production on Vercel |
 
-Vercel ortam değişkenlerinde en az şunları tanımlayın:
+In `signed` mode nothing is written to disk. The entitlement is carried in a MAC-signed
+token, so a link is valid, attributable and expires without any server-side session to
+keep. Binaries are served from object storage (Vercel Blob, S3 or R2) rather than from the
+application.
 
-- `SECRET_KEY`
-- `STORE_BASE_URL`
-- `STORE_STORAGE_MODE=signed`
-- `STORE_MAC_DOWNLOAD_URL`
-- `STORE_WINDOWS_DOWNLOAD_URL`
-- `STORE_MAC_SECURE_DOWNLOAD_URL`
-- `STORE_WINDOWS_SECURE_DOWNLOAD_URL`
-- `STORE_LICENSE_DURATION_DAYS=365`
-- `PAYMENT_MODE=lemonsqueezy`
-- `LEMON_SQUEEZY_API_KEY`
-- `LEMON_SQUEEZY_STORE_ID`
-- `LEMON_SQUEEZY_PRODUCT_ID`
-- `LEMON_SQUEEZY_VARIANT_ID`
+## Stack
 
-## İndirme dosyası
+Python · Flask · Stripe / Lemon Squeezy · pytest · Vercel
 
-Vercel üzerinde uygulama dosyasını sunucu diski üzerinden vermeyin. Bunun yerine:
-
-- Vercel Blob
-- S3 / Cloudflare R2
-- güvenli bir doğrudan dosya URL'si
-
-kullanıp platform bazlı adresleri `STORE_MAC_DOWNLOAD_URL` ve `STORE_WINDOWS_DOWNLOAD_URL` içine koyun.
-
-## Release artifact yapısı
-
-Varsayılan yerel release klasörü:
-
-```text
-releases/
-  CBAM_Engine_Mac.zip
-  CBAM_Engine_Windows.zip
-```
-
-Varsayılan dosya adları:
-
-- `CBAM_Engine_Mac.zip`
-- `CBAM_Engine_Windows.zip`
-
-Bu dosyalar mevcutsa:
-
-- `/downloads` sayfasındaki macOS ve Windows butonları doğru dosyaya gider
-- ödeme sonrası güvenli `/checkout/success` akışı da platform bazlı doğru dosyaya gider
-
-İsterseniz dosyaları yerel klasörde tutmak yerine URL override kullanabilirsiniz:
-
-- `STORE_MAC_DOWNLOAD_URL`
-- `STORE_WINDOWS_DOWNLOAD_URL`
-
-Güvenli post-payment akış için ayrı URL vermek isterseniz:
-
-- `STORE_MAC_SECURE_DOWNLOAD_URL`
-- `STORE_WINDOWS_SECURE_DOWNLOAD_URL`
-
-## Download page
-
-Projede artık ayrı bir indirme sayfası vardır:
-
-```text
-/downloads
-```
-
-Bu sayfa:
-
-- macOS ve Windows linklerini ayrı gösterir
-- yanlış dosya indirme riskini azaltır
-- linkleri sadece environment variables üzerinden yönetir
-
-İlgili ayarlar:
-
-- `STORE_RELEASE_DIR`
-- `STORE_MAC_RELEASE_FILENAME`
-- `STORE_WINDOWS_RELEASE_FILENAME`
-- `STORE_MAC_DOWNLOAD_URL`
-- `STORE_WINDOWS_DOWNLOAD_URL`
-- `STORE_MAC_SECURE_DOWNLOAD_URL`
-- `STORE_WINDOWS_SECURE_DOWNLOAD_URL`
-- `STORE_MAC_DOWNLOAD_NOTE`
-- `STORE_WINDOWS_DOWNLOAD_NOTE`
-- `STORE_RELEASE_VERSION`
-
-## Lokal geliştirme
+## Running it
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-python -m pip install -r requirements.txt
-cp .env.example .env
-python storefront/app.py
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # then fill it in
+flask --app app run           # http://localhost:5000
 ```
 
-Lokal kullanım için örnek ayar:
-
-```env
-STORE_STORAGE_MODE=database
-PAYMENT_MODE=demo
-STORE_RELEASE_DIR=/absolute/path/to/releases
+```bash
+pytest
 ```
 
-## Vercel deploy akışı
+## Configuration
 
-1. Bu klasörü GitHub'a yükle
-2. Vercel'de projeyi GitHub repo üzerinden import et
-3. Root dizin olarak bu projeyi seç
-4. Environment Variables bölümüne gerekli değerleri gir
-5. Stripe webhook adresini şu endpoint'e bağla:
+| Variable | |
+| --- | --- |
+| `SECRET_KEY` | Signing key for download tokens |
+| `STORE_BASE_URL` | Public base URL |
+| `STORE_STORAGE_MODE` | `database` or `signed` |
+| `STORE_MAC_DOWNLOAD_URL` / `STORE_WINDOWS_DOWNLOAD_URL` | Build locations |
+| `STORE_MAC_SECURE_DOWNLOAD_URL` / `STORE_WINDOWS_SECURE_DOWNLOAD_URL` | Signed variants |
+| `STORE_LICENSE_DURATION_DAYS` | Licence validity, default `365` |
+| `PAYMENT_MODE` | `lemonsqueezy` or `stripe` |
+| `LEMON_SQUEEZY_API_KEY` / `_STORE_ID` / `_PRODUCT_ID` / `_VARIANT_ID` | Lemon Squeezy config |
 
-```text
-https://your-domain.com/webhooks/stripe
-```
+## Notes
 
-## Dosya yapısı
+This repository is independent of the CBAM desktop application itself and deploys on its
+own. Serving the build from the application's own filesystem is deliberately not
+supported in production.
 
-- `app.py`: Vercel entry point
-- `storefront/app.py`: Flask uygulaması
-- `public/styles.css`: Vercel ve lokal kullanım için public CSS
-- `releases/`: varsayılan macOS ve Windows ZIP release dosyaları
-- `templates/`: Jinja şablonları
-- `vercel.json`: Python runtime ayarı
+## Licence
 
-## Not
-
-Stateless `signed` modunda indirme linki süre bazlı korunur. SQLite tabanlı indirme sayacı mantığı Vercel üretim akışında kullanılmaz.
-
-## Desktop lisans doğrulama
-
-Ödeme sonrası kullanıcıya 1 yıl geçerli bir lisans anahtarı gösterilir. Desktop uygulama bu anahtarı
-startup sırasında storefront üzerindeki `POST /api/license/validate` endpoint'i ile doğrular.
-
-Desktop uygulamada aşağıdaki alan storefront domainine işaret etmelidir:
-
-```text
-CBAM_LICENSE_API_BASE_URL=https://your-domain.com
-```
+Not open source. Published for review; all rights reserved.
